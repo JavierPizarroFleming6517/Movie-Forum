@@ -1,0 +1,48 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+/// Existing table from Foro-Peliculas (Alembic). Do not migrate.
+model User {
+  id             Int      @id @default(autoincrement())
+  email          String   @unique(map: "ix_users_email") @db.VarChar(255)
+  username       String   @unique(map: "ix_users_username") @db.VarChar(80)
+  hashedPassword String   @map("hashed_password")
+  isActive       Boolean  @default(true) @map("is_active")
+  createdAt      DateTime @default(now()) @map("created_at") @db.Timestamptz(6)
+  reviews        Review[]
+
+  @@map("users")
+}
+
+model Pelicula {
+  id            Int      @id
+  titulo        String   @db.VarChar(255)
+  posterUrl     String?  @map("poster_url") @db.VarChar(500)
+  detallesExtra Json     @default("{}") @map("detalles_extra")
+  reviews       Review[]
+
+  @@index([titulo], map: "ix_peliculas_titulo")
+  @@map("peliculas")
+}
+
+model Review {
+  id         Int      @id @default(autoincrement())
+  userId     Int      @map("user_id")
+  peliculaId Int      @map("pelicula_id")
+  rating     Int
+  comment    String
+  createdAt  DateTime @default(now()) @map("created_at") @db.Timestamptz(6)
+  user       User     @relation(fields: [userId], references: [id])
+  pelicula   Pelicula @relation(fields: [peliculaId], references: [id])
+
+  @@unique([userId, peliculaId], map: "uq_review_user_item")
+  @@index([userId], map: "ix_reviews_user_id")
+  @@index([peliculaId], map: "ix_reviews_pelicula_id")
+  @@map("reviews")
+}

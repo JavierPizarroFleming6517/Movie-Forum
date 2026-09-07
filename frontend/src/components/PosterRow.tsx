@@ -1,0 +1,104 @@
+import { type MouseEvent } from "react";
+import { Link, useNavigate } from "react-router-dom";
+import { api } from "../api/client";
+import { metaClass, sectionTitleClass } from "../ui";
+import { HorizontalScroller } from "./HorizontalScroller";
+
+type Item = {
+  id: number;
+  titulo?: string;
+  poster_url?: string | null;
+  valoracion?: number | null;
+  average_rating?: number | null;
+  fecha_estreno?: string | null;
+};
+
+const cardBtn =
+  "inline-flex cursor-pointer items-center justify-center rounded-3xl bg-accent px-3 py-2 text-[13px] font-semibold text-white hover:bg-accent-hover";
+const cardBtnGhost =
+  "inline-flex cursor-pointer items-center justify-center rounded-3xl border border-neutral-700 bg-transparent px-2.5 py-1.5 text-xs font-semibold text-white";
+
+export function PosterCard({
+  item,
+  media = "pelicula",
+}: {
+  item: Item;
+  media?: "pelicula" | "serie";
+}) {
+  const navigate = useNavigate();
+  const rating = item.average_rating ?? item.valoracion;
+  const year = (item.fecha_estreno || "").slice(0, 4);
+  const href = media === "serie" ? `/buscar?q=${encodeURIComponent(item.titulo || "")}` : `/pelicula/${item.id}`;
+
+  async function openTrailer(event: MouseEvent) {
+    event.preventDefault();
+    event.stopPropagation();
+    try {
+      const data = await api.trailer(item.id, media);
+      if (data?.url) window.open(data.url, "_blank", "noopener,noreferrer");
+    } catch {
+      /* tráiler opcional */
+    }
+  }
+
+  return (
+    <article className="w-[210px] shrink-0 overflow-hidden rounded-[10px] bg-surface text-white shadow-[0_3px_6px_#0006] transition duration-200 ease-out hover:z-[1] hover:scale-[1.08] hover:shadow-[0_12px_28px_#000c]">
+      <Link className="block" to={href}>
+        {item.poster_url ? (
+          <img className="h-[315px] w-[210px] rounded-t-lg bg-surface-alt object-cover" src={item.poster_url} alt={item.titulo || ""} />
+        ) : (
+          <div className="flex h-[315px] w-[210px] items-center justify-center rounded-t-lg bg-surface-alt text-4xl">🎬</div>
+        )}
+      </Link>
+      <div className="grid gap-1.5 px-3 pt-2.5 pb-3">
+        <div className="flex items-center gap-1 text-sm">
+          <span className="text-accent-text">★</span>
+          <span>{rating ? Number(rating).toFixed(1) : "—"}</span>
+          {year ? <span className={metaClass}> · {year}</span> : null}
+        </div>
+        <div className="min-h-[2.6em] overflow-hidden text-sm font-semibold leading-snug">{item.titulo}</div>
+        {media === "serie" ? (
+          <>
+            <button type="button" className={cardBtn} onClick={openTrailer}>
+              Ver tráiler
+            </button>
+            <button type="button" className={cardBtnGhost} onClick={() => navigate(href)}>
+              Buscar título
+            </button>
+          </>
+        ) : (
+          <>
+            <Link className={cardBtn} to={href}>
+              Ver ficha
+            </Link>
+            <button type="button" className={cardBtnGhost} onClick={openTrailer}>
+              Ver tráiler
+            </button>
+          </>
+        )}
+      </div>
+    </article>
+  );
+}
+
+export function PosterRow({
+  title,
+  items,
+  media = "pelicula",
+}: {
+  title: string;
+  items: Item[];
+  media?: "pelicula" | "serie";
+}) {
+  if (!items?.length) return null;
+  return (
+    <section className="mt-2">
+      <h2 className={sectionTitleClass}>{title}</h2>
+      <HorizontalScroller itemWidth={226} ariaLabel={title}>
+        {items.map((item) => (
+          <PosterCard key={`${media}-${item.id}`} item={item} media={media} />
+        ))}
+      </HorizontalScroller>
+    </section>
+  );
+}
