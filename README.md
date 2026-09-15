@@ -38,6 +38,15 @@ npx prisma db push
 
 No uses `prisma migrate` contra esta base: el esquema se aplica con `db push`.
 
+Al registrarse, la cuenta nace con rol `user`. Solo `admin` ve `/metricas`. El primer administrador se asigna en la base:
+
+```powershell
+cd backend
+npx prisma studio
+```
+
+En `users`, cambia `role` de `user` a `admin` en esa fila.
+
 ## Desarrollo local de la API (opcional)
 
 ```powershell

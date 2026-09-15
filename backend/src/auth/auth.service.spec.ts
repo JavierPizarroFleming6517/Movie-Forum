@@ -11,6 +11,7 @@ const user = {
   username: "ana",
   hashedPassword: "",
   isActive: true,
+  role: "user" as const,
   createdAt: new Date("2026-01-01"),
 };
 
@@ -97,7 +98,13 @@ describe("AuthService", () => {
       email: user.email,
       username: "ana",
       created_at: user.createdAt,
+      is_admin: false,
     });
+  });
+
+  it("marks the admin role", () => {
+    expect(service.isAdmin({ ...user, role: "admin" })).toBe(true);
+    expect(service.toRead({ ...user, role: "admin" }).is_admin).toBe(true);
   });
 
   it("lists the current user's reviews with movie data", async () => {

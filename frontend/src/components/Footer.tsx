@@ -1,8 +1,10 @@
 import { Link } from "react-router-dom";
+import { useAuth } from "../auth/AuthContext";
 
 const colLink = "my-1 block text-muted";
 
 export function Footer() {
+  const { session } = useAuth();
   return (
     <footer className="mt-auto flex w-full max-w-full flex-wrap justify-center gap-8 bg-footer py-7 pr-6 pl-14 max-md:pl-12">
       <div className="max-w-[260px] min-w-[140px]">
@@ -35,9 +37,11 @@ export function Footer() {
         <Link className={colLink} to="/cuenta">
           Acceder
         </Link>
-        <Link className={colLink} to="/metricas">
-          Métricas
-        </Link>
+        {session?.isAdmin && (
+          <Link className={colLink} to="/metricas">
+            Métricas
+          </Link>
+        )}
         <Link className={colLink} to="/catalogo">
           Escribe una reseña
         </Link>

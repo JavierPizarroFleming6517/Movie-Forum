@@ -10,6 +10,7 @@ const user = {
   username: "ana",
   hashedPassword: "x",
   isActive: true,
+  role: "user",
   createdAt: new Date(),
 } as User;
 

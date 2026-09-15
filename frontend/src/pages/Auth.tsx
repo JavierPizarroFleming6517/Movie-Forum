@@ -46,7 +46,7 @@ export function AuthPage() {
         mode === "login"
           ? await api.login(username, password)
           : await api.register(email, username, password);
-      setSession(data.access_token, data.user.id, data.user.username);
+      setSession(data.access_token, data.user.id, data.user.username, Boolean(data.user.is_admin));
     } catch (err) {
       setError(err instanceof ApiError ? err.message : "No se pudo autenticar");
     }
@@ -68,6 +68,9 @@ export function AuthPage() {
             <div>
               <h1 className="m-0 text-3xl">{profile?.username || session.username}</h1>
               <p className={metaClass}>{profile?.email || "Miembro del foro"}</p>
+              {(profile?.is_admin || session.isAdmin) && (
+                <p className="mt-1 text-xs font-semibold tracking-wide text-accent-text uppercase">Administrador</p>
+              )}
             </div>
           </div>
           <button className={primaryBtnClass} onClick={() => clear()}>
@@ -80,6 +83,16 @@ export function AuthPage() {
           <Stat label="Promedio" value={avg != null ? `${avg}/5` : "—"} />
           <Stat label="Miembro desde" value={formatJoined(profile?.created_at)} />
         </div>
+
+        {(profile?.is_admin || session.isAdmin) && (
+          <p className="mb-8 text-sm text-muted">
+            Puedes ver la actividad del foro en{" "}
+            <Link className="text-accent-text" to="/metricas">
+              Métricas
+            </Link>
+            .
+          </p>
+        )}
 
         <h2 className="mb-3 text-xl font-semibold">Tus reseñas</h2>
         {reviews.length === 0 ? (

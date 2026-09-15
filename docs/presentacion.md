@@ -4,7 +4,7 @@ Apoyo visual para explicar temática, solución y arquitectura. No es el código
 
 ## 1. Temática
 
-FOROPELIS es un foro de cine y series. El usuario explora el catálogo (TMDB), abre una ficha y deja una reseña con puntaje. La comunidad ve las más comentadas, las mejor valoradas y métricas globales.
+FOROPELIS es un foro de cine y series. El usuario explora el catálogo (TMDB), abre una ficha y deja una reseña con puntaje. La comunidad ve las más comentadas y las mejor valoradas; las métricas de actividad quedan para el administrador.
 
 Problema: el catálogo cambia todo el tiempo y no tiene sentido copiar TMDB entero. Solución: TMDB es la fuente del listado; Postgres solo guarda lo que el foro necesita (cuentas, copias de fichas visitadas y reseñas).
 
@@ -47,6 +47,7 @@ erDiagram
     string email
     string username
     string hashed_password
+    string role
   }
   peliculas {
     int id PK
@@ -104,5 +105,5 @@ El listado (home, tendencias, búsqueda) no escribe en Postgres. La película en
 2. Abrir una ficha nueva (primera importación) y recargar.
 3. Registrarse / iniciar sesión.
 4. Escribir una reseña y verla en la ficha.
-5. Métricas y “más comentadas”.
+5. Más comentadas (y métricas si entras como administrador).
 6. Mostrar `docker compose ps` y el badge/log de CI.

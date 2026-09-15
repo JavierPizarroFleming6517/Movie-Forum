@@ -1,4 +1,6 @@
-import { Controller, Get } from "@nestjs/common";
+import { Controller, Get, UseGuards } from "@nestjs/common";
+import { AuthGuard } from "@nestjs/passport";
+import { AdminGuard } from "../auth/admin.guard";
 import { PrismaService } from "../prisma/prisma.service";
 
 @Controller("api/v1/metrics")
@@ -6,6 +8,7 @@ export class MetricsController {
   constructor(private readonly prisma: PrismaService) {}
 
   @Get()
+  @UseGuards(AuthGuard("jwt"), AdminGuard)
   async metrics() {
     const [users, titles, reviews, avg] = await Promise.all([
       this.prisma.user.count(),

@@ -18,6 +18,7 @@ describe("JwtStrategy", () => {
     username: "ana",
     hashedPassword: "x",
     isActive: true,
+    role: "user",
     createdAt: new Date(),
   };
 

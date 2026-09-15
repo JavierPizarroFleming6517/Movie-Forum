@@ -7,6 +7,11 @@ datasource db {
   url      = env("DATABASE_URL")
 }
 
+enum UserRole {
+  user
+  admin
+}
+
 /// Existing table from Foro-Peliculas (Alembic). Do not migrate.
 model User {
   id             Int      @id @default(autoincrement())
@@ -14,6 +19,7 @@ model User {
   username       String   @unique(map: "ix_users_username") @db.VarChar(80)
   hashedPassword String   @map("hashed_password")
   isActive       Boolean  @default(true) @map("is_active")
+  role           UserRole @default(user)
   createdAt      DateTime @default(now()) @map("created_at") @db.Timestamptz(6)
   reviews        Review[]
 

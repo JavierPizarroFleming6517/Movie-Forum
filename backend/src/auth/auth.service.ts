@@ -51,12 +51,17 @@ export class AuthService {
     return this.issueToken(user);
   }
 
+  isAdmin(user: Pick<User, "role">) {
+    return user.role === "admin";
+  }
+
   toRead(user: User) {
     return {
       id: user.id,
       email: user.email,
       username: user.username,
       created_at: user.createdAt,
+      is_admin: this.isAdmin(user),
     };
   }
 

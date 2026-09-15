@@ -1,9 +1,12 @@
 import { useEffect, useState } from "react";
+import { Link } from "react-router-dom";
 import { api, ApiError } from "../api/client";
+import { useAuth } from "../auth/AuthContext";
 import { forumStars } from "../components/StarRating";
 import { metaClass, pageClass } from "../ui";
 
 export function MetricsPage() {
+  const { session } = useAuth();
   const [data, setData] = useState<any>(null);
   const [error, setError] = useState("");
 
@@ -17,13 +20,29 @@ export function MetricsPage() {
   }
 
   useEffect(() => {
+    if (!session?.isAdmin) {
+      setData(null);
+      return;
+    }
     load();
-  }, []);
+  }, [session?.isAdmin]);
+
+  if (!session?.isAdmin) {
+    return (
+      <div className={pageClass}>
+        <h1 className="mb-1 text-[30px]">Métricas</h1>
+        <p className="mb-4 text-[13px] text-muted">Esta sección es solo para administradores.</p>
+        <Link className="text-accent-text" to={session ? "/catalogo" : "/cuenta"}>
+          {session ? "Volver al catálogo" : "Iniciar sesión"}
+        </Link>
+      </div>
+    );
+  }
 
   return (
     <div className={pageClass}>
       <h1 className="mb-1 text-[30px]">Métricas</h1>
-      <p className="mb-6 text-[13px] text-muted">Actividad de la comunidad en Postgres</p>
+      <p className="mb-6 text-[13px] text-muted">Actividad del foro</p>
       {error && <p className="text-[#ff8a80]">{error}</p>}
       {data && (
         <>

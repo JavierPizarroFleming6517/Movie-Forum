@@ -1,5 +1,6 @@
 import { useEffect, useState } from "react";
 import { Link, NavLink, useLocation } from "react-router-dom";
+import { useAuth } from "../auth/AuthContext";
 import { brandClass, cn } from "../ui";
 
 type Collection = { clave: string; titulo: string };
@@ -83,6 +84,7 @@ export function Sidebar({
   open: boolean;
   onClose: () => void;
 }) {
+  const { session } = useAuth();
   const location = useLocation();
   const seriesFromUrl = location.pathname === "/series" || location.pathname.startsWith("/series/");
   const [scope, setScope] = useState<"pelicula" | "serie">(seriesFromUrl ? "serie" : "pelicula");
@@ -126,24 +128,30 @@ export function Sidebar({
           </button>
         </div>
 
-        <div className="mx-4 mb-5 grid grid-cols-2 rounded-lg bg-surface p-1">
+        <div className="mx-4 mb-5 grid grid-cols-2">
           <button
             type="button"
             className={cn(
-              "cursor-pointer rounded-md border-0 py-2 text-sm text-white",
-              scope === "pelicula" ? "bg-accent" : "bg-transparent",
+              "cursor-pointer border-0 bg-transparent py-2.5 text-sm",
+              scope === "pelicula" ? "text-white shadow-[inset_0_-2px_0_#fff]" : "text-muted",
             )}
-            onClick={() => setScope("pelicula")}
+            onClick={() => {
+              setScope("pelicula");
+              setShowGenres(false);
+            }}
           >
             Películas
           </button>
           <button
             type="button"
             className={cn(
-              "cursor-pointer rounded-md border-0 py-2 text-sm text-white",
-              scope === "serie" ? "bg-accent" : "bg-transparent",
+              "cursor-pointer border-0 bg-transparent py-2.5 text-sm",
+              scope === "serie" ? "text-white shadow-[inset_0_-2px_0_#fff]" : "text-muted",
             )}
-            onClick={() => setScope("serie")}
+            onClick={() => {
+              setScope("serie");
+              setShowGenres(false);
+            }}
           >
             Series
           </button>
@@ -199,9 +207,11 @@ export function Sidebar({
             <NavLink className={linkClass} to="/foro/valoradas" onClick={onClose}>
               Mejor valoradas
             </NavLink>
-            <NavLink className={linkClass} to="/metricas" onClick={onClose}>
-              Métricas
-            </NavLink>
+            {session?.isAdmin && (
+              <NavLink className={linkClass} to="/metricas" onClick={onClose}>
+                Métricas
+              </NavLink>
+            )}
           </div>
         </div>
       </aside>
