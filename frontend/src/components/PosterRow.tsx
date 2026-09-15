@@ -1,7 +1,7 @@
 import { type MouseEvent } from "react";
 import { Link, useNavigate } from "react-router-dom";
 import { api } from "../api/client";
-import { metaClass, sectionTitleClass } from "../ui";
+import { hoverLiftClass, metaClass, sectionTitleClass } from "../ui";
 import { HorizontalScroller } from "./HorizontalScroller";
 
 type Item = {
@@ -42,7 +42,7 @@ export function PosterCard({
   }
 
   return (
-    <article className="w-[210px] shrink-0 overflow-hidden rounded-[10px] bg-surface text-white shadow-[0_3px_6px_#0006] transition duration-200 ease-out hover:z-[1] hover:scale-[1.08] hover:shadow-[0_12px_28px_#000c]">
+    <article className={`w-[210px] shrink-0 overflow-hidden rounded-[10px] bg-surface text-white shadow-[0_3px_6px_#0006] ${hoverLiftClass}`}>
       <Link className="block" to={href}>
         {item.poster_url ? (
           <img className="h-[315px] w-[210px] rounded-t-lg bg-surface-alt object-cover" src={item.poster_url} alt={item.titulo || ""} />

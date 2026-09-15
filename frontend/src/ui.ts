@@ -23,3 +23,6 @@ export const playBtnClass =
 export const pageClass = "min-w-0 px-6 pb-12 pl-14 pt-6 max-md:pl-12";
 
 export const metaClass = "text-[13px] text-muted";
+
+export const hoverLiftClass =
+  "transition duration-200 ease-out hover:z-[1] hover:scale-[1.08] hover:shadow-[0_12px_28px_#000c]";

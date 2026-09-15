@@ -3,7 +3,7 @@ import { Link, useNavigate, useParams } from "react-router-dom";
 import { api, ApiError } from "../api/client";
 import { useAuth } from "../auth/AuthContext";
 import { HorizontalScroller } from "../components/HorizontalScroller";
-import { fieldClass, metaClass, pageClass, playBtnClass, sectionTitleClass } from "../ui";
+import { fieldClass, hoverLiftClass, metaClass, pageClass, playBtnClass, sectionTitleClass } from "../ui";
 
 const STATUS_ES: Record<string, string> = {
   Released: "Estrenada",
@@ -169,7 +169,7 @@ export function DetailPage() {
               <h2 className={sectionTitleClass}>Reparto principal</h2>
               <HorizontalScroller itemWidth={152} ariaLabel="Reparto">
                 {cast.map((actor: any) => (
-                  <div className="w-[140px] shrink-0 overflow-hidden rounded-lg bg-surface" key={actor.id || actor.name}>
+                  <div className={`w-[140px] shrink-0 overflow-hidden rounded-lg bg-surface ${hoverLiftClass}`} key={actor.id || actor.name}>
                     {actor.profile_path ? (
                       <img className="h-[175px] w-[140px] bg-surface-alt object-cover" src={`https://image.tmdb.org/t/p/w185${actor.profile_path}`} alt={actor.name} />
                     ) : (
@@ -232,7 +232,7 @@ export function DetailPage() {
               <h2 className={sectionTitleClass}>Si te gustó {item.titulo}, también te puede gustar</h2>
               <HorizontalScroller itemWidth={162} ariaLabel="Recomendaciones">
                 {recs.map((rec: any) => (
-                  <Link className="w-[150px] shrink-0 text-white" key={rec.id} to={`/pelicula/${rec.id}`}>
+                  <Link className={`w-[150px] shrink-0 overflow-hidden rounded-lg text-white ${hoverLiftClass}`} key={rec.id} to={`/pelicula/${rec.id}`}>
                     {rec.poster_path ? (
                       <img className="h-[225px] w-[150px] rounded-lg bg-surface-alt object-cover" src={`https://image.tmdb.org/t/p/w500${rec.poster_path}`} alt="" />
                     ) : (
