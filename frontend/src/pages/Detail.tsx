@@ -3,6 +3,7 @@ import { Link, useNavigate, useParams } from "react-router-dom";
 import { api, ApiError } from "../api/client";
 import { useAuth } from "../auth/AuthContext";
 import { HorizontalScroller } from "../components/HorizontalScroller";
+import { forumStars, StarRating } from "../components/StarRating";
 import { fieldClass, hoverLiftClass, metaClass, pageClass, playBtnClass, sectionTitleClass } from "../ui";
 
 const STATUS_ES: Record<string, string> = {
@@ -36,7 +37,7 @@ export function DetailPage() {
   const [item, setItem] = useState<any>(null);
   const [reviews, setReviews] = useState<any[]>([]);
   const [error, setError] = useState("");
-  const [rating, setRating] = useState("8");
+  const [rating, setRating] = useState(0);
   const [comment, setComment] = useState("");
   const [formStatus, setFormStatus] = useState("");
 
@@ -46,6 +47,7 @@ export function DetailPage() {
     setItem(null);
     setReviews([]);
     setFormStatus("");
+    setRating(0);
 
     async function loadMovie() {
       try {
@@ -84,10 +86,19 @@ export function DetailPage() {
       navigate("/cuenta");
       return;
     }
+    if (!rating) {
+      setFormStatus("Elige una calificación de 1 a 5 estrellas");
+      return;
+    }
+    if (!comment.trim()) {
+      setFormStatus("Escribe un comentario");
+      return;
+    }
     try {
-      await api.upsertReview(movieId, Number(rating), comment);
+      await api.upsertReview(movieId, rating, comment.trim());
       setFormStatus("Reseña guardada");
       setComment("");
+      setRating(0);
       try {
         setReviews(await api.reviews(movieId));
       } catch {
@@ -199,7 +210,9 @@ export function DetailPage() {
                     {review.created_at ? ` el ${formatDate(String(review.created_at))}` : ""}
                   </div>
                 </div>
-                <span className="ml-auto rounded-xl bg-accent px-2 py-1 text-xs">★ {review.rating}/10</span>
+                <span className="ml-auto">
+                  <StarRating value={forumStars(review.rating)} readOnly size={18} />
+                </span>
               </div>
               <p>{review.comment}</p>
             </article>
@@ -208,14 +221,17 @@ export function DetailPage() {
             <h3 className="text-lg font-semibold">Tu reseña</h3>
             {session ? (
               <>
-                <select className={fieldClass} value={rating} onChange={(e) => setRating(e.target.value)}>
-                  {Array.from({ length: 10 }, (_, i) => i + 1).map((n) => (
-                    <option key={n} value={n}>
-                      {n}
-                    </option>
-                  ))}
-                </select>
-                <textarea className={fieldClass} rows={4} value={comment} onChange={(e) => setComment(e.target.value)} placeholder="Comentario" />
+                <div>
+                  {rating > 0 && <p className="mb-1.5 text-sm text-muted">{rating} de 5 estrellas</p>}
+                  <StarRating value={rating} onChange={setRating} />
+                </div>
+                <textarea
+                  className={fieldClass}
+                  rows={4}
+                  value={comment}
+                  onChange={(e) => setComment(e.target.value)}
+                  placeholder="Escribe tu opinión"
+                />
                 <button className={playBtnClass} type="submit">
                   Publicar reseña
                 </button>
@@ -266,7 +282,7 @@ export function DetailPage() {
           </div>
           <Fact
             label="En el foro"
-            value={`${item.review_count || 0} reseñas${item.average_rating != null ? ` · ${item.average_rating}/10` : ""}`}
+            value={`${item.review_count || 0} reseñas${item.average_rating != null ? ` · ${forumStars(item.average_rating)}/5` : ""}`}
           />
         </aside>
       </div>

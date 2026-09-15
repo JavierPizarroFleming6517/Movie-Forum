@@ -60,6 +60,23 @@ export class AuthService {
     };
   }
 
+  async listMyReviews(user: User) {
+    const reviews = await this.prisma.review.findMany({
+      where: { userId: user.id },
+      include: { pelicula: true },
+      orderBy: { createdAt: "desc" },
+    });
+    return reviews.map((review) => ({
+      id: review.id,
+      rating: review.rating,
+      comment: review.comment,
+      created_at: review.createdAt,
+      pelicula_id: review.peliculaId,
+      titulo: review.pelicula.titulo,
+      poster_url: review.pelicula.posterUrl,
+    }));
+  }
+
   private issueToken(user: User) {
     const minutes = Number(this.config.get("ACCESS_TOKEN_EXPIRE_MINUTES") || 1440);
     const access_token = this.jwt.sign(

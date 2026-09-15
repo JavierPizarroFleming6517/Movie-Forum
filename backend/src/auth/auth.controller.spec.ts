@@ -7,6 +7,7 @@ describe("AuthController", () => {
     register: jest.fn().mockResolvedValue({ access_token: "a" }),
     login: jest.fn().mockResolvedValue({ access_token: "b" }),
     toRead: jest.fn().mockReturnValue({ id: 1, username: "ana" }),
+    listMyReviews: jest.fn().mockResolvedValue([]),
   };
   const controller = new AuthController(auth as unknown as AuthService);
   const user = { id: 1, username: "ana" } as User;
@@ -25,5 +26,10 @@ describe("AuthController", () => {
   it("returns the current user", () => {
     expect(controller.me({ user })).toEqual({ id: 1, username: "ana" });
     expect(auth.toRead).toHaveBeenCalledWith(user);
+  });
+
+  it("lists the current user's reviews", async () => {
+    await expect(controller.reviews({ user })).resolves.toEqual([]);
+    expect(auth.listMyReviews).toHaveBeenCalledWith(user);
   });
 });

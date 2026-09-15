@@ -52,10 +52,10 @@ export function Layout() {
     <div
       className={cn(
         "relative flex min-h-screen max-w-full flex-col overflow-x-hidden",
-        location.pathname === "/cuenta" && "h-screen overflow-hidden",
+        location.pathname === "/cuenta" && !session && "h-screen overflow-hidden",
       )}
     >
-      <header className="sticky top-0 z-20 flex h-[70px] min-w-0 items-center gap-3 bg-header px-4">
+      <header className="sticky top-0 z-20 flex h-[70px] min-w-0 items-center gap-3 overflow-visible bg-header px-4">
         <div className="flex min-w-0 shrink items-center gap-2.5">
           <button className={ghostBtnClass} type="button" onClick={() => setMenuOpen(true)}>
             <MenuIcon />
@@ -65,14 +65,41 @@ export function Layout() {
             FOROPELIS
           </Link>
         </div>
-        <form id="search-form" className="flex min-w-0 flex-1 basis-44" onSubmit={submitSearch}>
+        <form id="search-form" className="relative flex min-w-0 flex-1 basis-44" onSubmit={submitSearch}>
           <input
             className="search-input h-[42px] min-w-0 flex-1 rounded-md border border-white py-0 pr-3 pl-9 text-neutral-900"
             placeholder="Buscar películas"
             value={query}
+            autoComplete="off"
             onChange={(e) => onSearchChange(e.target.value)}
             onBlur={() => window.setTimeout(() => setHints([]), 200)}
           />
+          {hints.length > 0 && (
+            <div
+              className="absolute top-full right-0 left-0 z-30 mt-1 max-h-[min(360px,calc(100vh-90px))] overflow-auto rounded-md bg-surface shadow-lg"
+              role="listbox"
+            >
+              {hints.map((item) => (
+                <Link
+                  key={item.id}
+                  className="flex items-center gap-2.5 px-3 py-2 hover:bg-surface-alt"
+                  to={`/pelicula/${item.id}`}
+                  onMouseDown={(e) => e.preventDefault()}
+                  role="option"
+                >
+                  {item.poster_url ? (
+                    <img className="h-12 w-8 shrink-0 rounded-sm object-cover" src={item.poster_url} width={32} height={48} alt="" />
+                  ) : (
+                    <span className="h-12 w-8 shrink-0 rounded-sm bg-surface-alt" />
+                  )}
+                  <span className="min-w-0 truncate">
+                    {item.titulo}
+                    {item.fecha_estreno ? ` (${String(item.fecha_estreno).slice(0, 4)})` : ""}
+                  </span>
+                </Link>
+              ))}
+            </div>
+          )}
         </form>
         <div className="ml-auto flex min-w-0 shrink items-center gap-2.5">
           <button
@@ -89,24 +116,6 @@ export function Layout() {
           </Link>
         </div>
       </header>
-      {hints.length > 0 && (
-        <div className="absolute top-[70px] right-4 left-4 z-[15] max-h-[360px] overflow-auto rounded-b-lg bg-surface max-md:right-3 max-md:left-3">
-          {hints.map((item) => (
-            <Link
-              key={item.id}
-              className="flex items-center gap-2.5 px-3 py-2 hover:bg-surface-alt"
-              to={`/pelicula/${item.id}`}
-              onMouseDown={(e) => e.preventDefault()}
-            >
-              {item.poster_url ? <img src={item.poster_url} width={32} height={48} alt="" /> : <span />}
-              <span>
-                {item.titulo}
-                {item.fecha_estreno ? ` (${String(item.fecha_estreno).slice(0, 4)})` : ""}
-              </span>
-            </Link>
-          ))}
-        </div>
-      )}
       <Sidebar menu={menu} open={menuOpen} onClose={() => setMenuOpen(false)} />
       <div className="relative flex min-h-0 min-w-0 flex-1 flex-col">
         {loading && (

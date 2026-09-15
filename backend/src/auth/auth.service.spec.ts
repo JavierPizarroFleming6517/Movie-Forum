@@ -15,13 +15,13 @@ const user = {
 };
 
 describe("AuthService", () => {
-  let prisma: { user: { findFirst: jest.Mock; create: jest.Mock } };
+  let prisma: { user: { findFirst: jest.Mock; create: jest.Mock }; review: { findMany: jest.Mock } };
   let jwt: { sign: jest.Mock };
   let config: { get: jest.Mock };
   let service: AuthService;
 
   beforeEach(async () => {
-    prisma = { user: { findFirst: jest.fn(), create: jest.fn() } };
+    prisma = { user: { findFirst: jest.fn(), create: jest.fn() }, review: { findMany: jest.fn() } };
     jwt = { sign: jest.fn().mockReturnValue("tok") };
     config = { get: jest.fn().mockReturnValue("60") };
     service = new AuthService(
@@ -98,5 +98,29 @@ describe("AuthService", () => {
       username: "ana",
       created_at: user.createdAt,
     });
+  });
+
+  it("lists the current user's reviews with movie data", async () => {
+    prisma.review.findMany.mockResolvedValue([
+      {
+        id: 1,
+        rating: 4,
+        comment: "Buena",
+        createdAt: new Date("2026-02-01"),
+        peliculaId: 550,
+        pelicula: { titulo: "El club de la lucha", posterUrl: "/p.jpg" },
+      },
+    ]);
+    await expect(service.listMyReviews(user)).resolves.toEqual([
+      {
+        id: 1,
+        rating: 4,
+        comment: "Buena",
+        created_at: new Date("2026-02-01"),
+        pelicula_id: 550,
+        titulo: "El club de la lucha",
+        poster_url: "/p.jpg",
+      },
+    ]);
   });
 });

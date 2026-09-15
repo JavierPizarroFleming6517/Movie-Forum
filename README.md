@@ -14,7 +14,7 @@ La API y Postgres van en Docker. El frontend se sirve en el host.
 ```powershell
 cd Movie-Forum
 copy backend\.env.example backend\.env
-# Completá TMDB_API_KEY en backend\.env
+# Completa TMDB_API_KEY en backend\.env
 
 docker compose up -d --build
 
@@ -23,7 +23,7 @@ npm install
 npm run dev
 ```
 
-Si la base está vacía (primera vez), creá las tablas:
+Si la base está vacía (primera vez), crea las tablas:
 
 ```powershell
 cd backend

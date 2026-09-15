@@ -57,4 +57,6 @@ export const api = {
   register: (email: string, username: string, password: string) =>
     request<any>("/api/v1/auth/register", { method: "POST", body: JSON.stringify({ email, username, password }) }),
   metrics: () => request<any>("/api/v1/metrics"),
+  me: () => request<any>("/api/v1/auth/me"),
+  myReviews: () => request<any[]>("/api/v1/auth/reviews"),
 };

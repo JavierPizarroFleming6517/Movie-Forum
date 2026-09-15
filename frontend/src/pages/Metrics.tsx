@@ -1,5 +1,6 @@
 import { useEffect, useState } from "react";
 import { api, ApiError } from "../api/client";
+import { forumStars } from "../components/StarRating";
 import { metaClass, pageClass } from "../ui";
 
 export function MetricsPage() {
@@ -37,7 +38,7 @@ export function MetricsPage() {
               Reseñas<b className="mt-1 block text-[28px]">{data.reviews}</b>
             </div>
             <div className="w-[180px] rounded-lg bg-surface p-5">
-              Promedio<b className="mt-1 block text-[28px]">{data.global_average_rating ?? "—"}</b>
+              Promedio<b className="mt-1 block text-[28px]">{data.global_average_rating != null ? `${forumStars(data.global_average_rating)}/5` : "—"}</b>
             </div>
           </div>
           <h2 className="mt-6 mb-3 text-xl">Top 5 por calificación</h2>
@@ -45,7 +46,7 @@ export function MetricsPage() {
             <article className="mb-3 rounded-lg bg-surface p-4" key={item.id}>
               <strong>{item.title}</strong>
               <div className={metaClass}>
-                {item.average_rating}/10 · {item.review_count} reseñas
+                {forumStars(item.average_rating)}/5 · {item.review_count} reseñas
               </div>
             </article>
           ))}

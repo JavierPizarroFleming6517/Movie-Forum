@@ -9,7 +9,7 @@ export class ReviewDto {
   @Type(() => Number)
   @IsInt()
   @Min(1)
-  @Max(10)
+  @Max(5)
   rating!: number;
 
   @IsString()

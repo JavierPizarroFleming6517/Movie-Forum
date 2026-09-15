@@ -23,4 +23,10 @@ export class AuthController {
   me(@Req() req: { user: User }) {
     return this.auth.toRead(req.user);
   }
+
+  @Get("reviews")
+  @UseGuards(AuthGuard("jwt"))
+  reviews(@Req() req: { user: User }) {
+    return this.auth.listMyReviews(req.user);
+  }
 }
