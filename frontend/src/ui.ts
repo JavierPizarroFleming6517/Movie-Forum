@@ -2,9 +2,6 @@ export function cn(...parts: Array<string | false | null | undefined>) {
   return parts.filter(Boolean).join(" ");
 }
 
-export const brandClass =
-  "rounded-md bg-accent px-2.5 py-1.5 text-sm font-bold tracking-wide text-white";
-
 export const sectionTitleClass =
   "mx-2 my-5 flex items-center gap-2.5 text-[22px] font-bold before:block before:h-7 before:w-1.5 before:rounded-sm before:bg-accent-text before:content-['']";
 
@@ -20,7 +17,9 @@ export const primaryBtnClass =
 export const playBtnClass =
   "inline-flex cursor-pointer items-center justify-center gap-2 rounded-3xl bg-accent px-4 py-2.5 text-sm font-semibold text-white hover:bg-accent-hover";
 
-export const pageClass = "min-w-0 px-6 pb-12 pl-14 pt-6 max-md:pl-12";
+export const shellClass = "mx-auto w-full max-w-[1280px] px-6";
+
+export const pageClass = `${shellClass} min-w-0 pb-12 pt-6`;
 
 export const metaClass = "text-[13px] text-muted";
 

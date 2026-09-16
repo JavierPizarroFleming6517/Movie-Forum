@@ -6,6 +6,7 @@ import {
   MOVIE,
   TV,
   TmdbClient,
+  buildBackdropUrl,
   buildPosterUrl,
 } from "./tmdb.client";
 
@@ -76,9 +77,12 @@ export class TmdbService {
       id: item.id,
       titulo: item.title || item.name || item.original_title || item.original_name || "Sin título",
       poster_url: buildPosterUrl(item.poster_path),
+      backdrop_url: buildBackdropUrl(item.backdrop_path),
       fecha_estreno: item.release_date || item.first_air_date || null,
       sinopsis: item.overview || null,
       valoracion: item.vote_average ?? null,
+      votos: item.vote_count ?? null,
+      popularidad: item.popularity ?? null,
     }));
   }
 
@@ -90,6 +94,24 @@ export class TmdbService {
   async populares(page = 1) {
     const payload = await this.tmdb.fetchPopularMovies(page);
     return { source: "popular", page, results: this.mapResults(payload) };
+  }
+
+  async listPeople() {
+    const payload = await this.tmdb.fetchTrendingPeople();
+    const results = ((payload.results as TmdbItem[]) || [])
+      .filter((item) => item.known_for_department === "Acting" || !item.known_for_department)
+      .slice(0, 16)
+      .map((item) => ({
+        id: item.id,
+        nombre: item.name || "Sin nombre",
+        foto_url: buildPosterUrl(item.profile_path),
+        departamento: item.known_for_department || "Interpretación",
+        obras: ((item.known_for as TmdbItem[]) || [])
+          .slice(0, 2)
+          .map((work) => work.title || work.name)
+          .filter(Boolean),
+      }));
+    return { title: "Rostros de la semana", results };
   }
 
   private async fetchHomeKind(kind: string, genreId?: number) {

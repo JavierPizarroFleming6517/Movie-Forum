@@ -1,26 +1,30 @@
 import { Link } from "react-router-dom";
 import { useAuth } from "../auth/AuthContext";
+import { cn, shellClass } from "../ui";
+import { Brand } from "./Brand";
 
 const colLink = "my-1 block text-muted";
 
 export function Footer() {
   const { session } = useAuth();
   return (
-    <footer className="mt-auto flex w-full max-w-full flex-wrap justify-center gap-8 bg-footer py-7 pr-6 pl-14 max-md:pl-12">
+    <footer className="mt-auto w-full bg-footer">
+      <div className={cn(shellClass, "flex flex-wrap justify-between gap-8 py-7")}>
       <div className="max-w-[260px] min-w-[140px]">
-        <div className="mb-3.5 text-[22px] font-bold">FOROPELIS</div>
+        <div className="mb-4">
+          <Brand />
+        </div>
         <Link
           className="inline-block rounded-md bg-accent-text px-3.5 py-2.5 text-xs font-bold text-footer"
           to="/cuenta"
         >
           ÚNETE A LA COMUNIDAD
         </Link>
-        <p className="mt-3 text-xs text-muted">FOROPELIS</p>
       </div>
       <div className="max-w-[260px] min-w-[140px]">
         <h4 className="mb-2 font-bold">LO BÁSICO</h4>
-        <Link className={colLink} to="/catalogo">
-          Catálogo
+        <Link className={colLink} to="/inicio">
+          Inicio
         </Link>
         <Link className={colLink} to="/series">
           Series
@@ -42,7 +46,7 @@ export function Footer() {
             Métricas
           </Link>
         )}
-        <Link className={colLink} to="/catalogo">
+        <Link className={colLink} to="/inicio">
           Escribe una reseña
         </Link>
       </div>
@@ -57,6 +61,7 @@ export function Footer() {
         <Link className={colLink} to="/peliculas/mejor_valoradas">
           Mejor valoradas
         </Link>
+      </div>
       </div>
     </footer>
   );

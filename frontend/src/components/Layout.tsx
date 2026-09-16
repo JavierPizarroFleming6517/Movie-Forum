@@ -3,8 +3,9 @@ import { createPortal } from "react-dom";
 import { Link, Outlet, useLocation, useNavigate } from "react-router-dom";
 import { api } from "../api/client";
 import { useAuth } from "../auth/AuthContext";
-import { brandClass, cn, ghostBtnClass } from "../ui";
+import { cn, ghostBtnClass, shellClass } from "../ui";
 import { AccountMenu } from "./AccountMenu";
+import { Brand } from "./Brand";
 import { Footer } from "./Footer";
 import { Sidebar } from "./Sidebar";
 
@@ -16,7 +17,6 @@ export function Layout() {
   const [menu, setMenu] = useState<any>(null);
   const [query, setQuery] = useState("");
   const [hints, setHints] = useState<any[]>([]);
-  const [loading, setLoading] = useState(false);
   const [suggestBox, setSuggestBox] = useState<{ top: number; left: number; width: number } | null>(null);
   const timer = useRef<number | undefined>(undefined);
   const searchInput = useRef<HTMLInputElement>(null);
@@ -26,10 +26,7 @@ export function Layout() {
   }, []);
 
   useEffect(() => {
-    setLoading(true);
     setHints([]);
-    const id = window.setTimeout(() => setLoading(false), 250);
-    return () => window.clearTimeout(id);
   }, [location.pathname, location.search]);
 
   useLayoutEffect(() => {
@@ -69,7 +66,7 @@ export function Layout() {
     const text = query.trim();
     setHints([]);
     if (text) navigate(`/buscar?q=${encodeURIComponent(text)}`);
-    else navigate("/catalogo");
+    else navigate("/inicio");
   }
 
   return (
@@ -79,37 +76,27 @@ export function Layout() {
         location.pathname === "/cuenta" && !session && "h-screen overflow-hidden",
       )}
     >
-      <header className="sticky top-0 z-20 flex h-[70px] min-w-0 items-center gap-3 overflow-visible bg-header px-4">
-        <div className="flex min-w-0 shrink items-center gap-2.5">
+      <header className="sticky top-0 z-20 overflow-visible bg-header">
+        <div className={cn(shellClass, "flex h-[70px] min-w-0 items-center gap-4")}>
+          <Brand />
           <button className={ghostBtnClass} type="button" onClick={() => setMenuOpen(true)}>
             <MenuIcon />
             Menú
           </button>
-          <Link className={brandClass} to="/catalogo">
-            FOROPELIS
-          </Link>
-        </div>
-        <form id="search-form" className="relative flex min-w-0 flex-1 basis-44" onSubmit={submitSearch}>
-          <input
-            ref={searchInput}
-            className="search-input h-[42px] min-w-0 flex-1 rounded-md border border-white py-0 pr-3 pl-9 text-neutral-900"
-            placeholder="Buscar películas"
-            value={query}
-            autoComplete="off"
-            onChange={(e) => onSearchChange(e.target.value)}
-            onBlur={() => window.setTimeout(() => setHints([]), 200)}
-          />
-        </form>
-        <div className="ml-auto flex min-w-0 shrink items-center gap-2.5">
-          <button
-            className="inline-flex h-10 w-10 cursor-pointer items-center justify-center rounded-full border-0 bg-transparent text-white hover:bg-white/10"
-            type="submit"
-            form="search-form"
-            aria-label="Buscar"
-          >
-            <SearchIcon />
-          </button>
-          <AccountMenu />
+          <form id="search-form" className="relative mx-2 flex min-w-0 flex-1 basis-44" onSubmit={submitSearch}>
+            <input
+              ref={searchInput}
+              className="search-input h-[42px] min-w-0 flex-1 rounded-md border border-white py-0 pr-3 pl-9 text-neutral-900"
+              placeholder="Buscar películas"
+              value={query}
+              autoComplete="off"
+              onChange={(e) => onSearchChange(e.target.value)}
+              onBlur={() => window.setTimeout(() => setHints([]), 200)}
+            />
+          </form>
+          <div className="ml-auto flex min-w-0 shrink items-center gap-2.5">
+            <AccountMenu />
+          </div>
         </div>
       </header>
       {hints.length > 0 &&
@@ -144,12 +131,6 @@ export function Layout() {
         )}
       <Sidebar menu={menu} open={menuOpen} onClose={() => setMenuOpen(false)} />
       <div className="relative flex min-h-0 min-w-0 flex-1 flex-col">
-        {loading && (
-          <div className="absolute inset-0 z-[5] flex flex-col items-center justify-center gap-4 bg-bg">
-            <div className="h-10 w-10 animate-spin rounded-full border-[3px] border-neutral-700 border-t-accent-text" />
-            <div>Cargando</div>
-          </div>
-        )}
         <Outlet />
       </div>
       <Footer />
@@ -161,15 +142,6 @@ function MenuIcon() {
   return (
     <svg width="20" height="20" viewBox="0 0 24 24" fill="none" aria-hidden="true">
       <path d="M4 7h16M4 12h16M4 17h16" stroke="currentColor" strokeWidth="2" strokeLinecap="round" />
-    </svg>
-  );
-}
-
-function SearchIcon() {
-  return (
-    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" aria-hidden="true">
-      <circle cx="11" cy="11" r="6.5" stroke="currentColor" strokeWidth="2" />
-      <path d="M16 16l5 5" stroke="currentColor" strokeWidth="2" strokeLinecap="round" />
     </svg>
   );
 }

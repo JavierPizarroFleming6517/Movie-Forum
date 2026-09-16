@@ -2,6 +2,7 @@ import { useEffect, useState, type FormEvent } from "react";
 import { Link } from "react-router-dom";
 import { api, ApiError } from "../api/client";
 import { useAuth } from "../auth/AuthContext";
+import { LoadingScreen } from "../components/LoadingScreen";
 import { forumStars, StarRating } from "../components/StarRating";
 import { fieldClass, ghostBtnClass, metaClass, pageClass, primaryBtnClass } from "../ui";
 
@@ -14,14 +15,17 @@ export function AuthPage() {
   const [error, setError] = useState("");
   const [profile, setProfile] = useState<any>(null);
   const [reviews, setReviews] = useState<any[]>([]);
+  const [loading, setLoading] = useState(Boolean(session));
 
   useEffect(() => {
     if (!session) {
       setProfile(null);
       setReviews([]);
+      setLoading(false);
       return;
     }
     let cancelled = false;
+    setLoading(true);
     Promise.all([api.me(), api.myReviews()])
       .then(([me, mine]) => {
         if (cancelled) return;
@@ -32,6 +36,9 @@ export function AuthPage() {
         if (cancelled) return;
         setProfile({ username: session.username, id: session.id });
         setReviews([]);
+      })
+      .finally(() => {
+        if (!cancelled) setLoading(false);
       });
     return () => {
       cancelled = true;
@@ -51,6 +58,8 @@ export function AuthPage() {
       setError(err instanceof ApiError ? err.message : "No se pudo autenticar");
     }
   }
+
+  if (session && loading) return <LoadingScreen />;
 
   if (session) {
     const initial = (profile?.username || session.username || "U").slice(0, 1).toUpperCase();
@@ -98,8 +107,8 @@ export function AuthPage() {
         {reviews.length === 0 ? (
           <p className={metaClass}>
             Todavía no has publicado reseñas.{" "}
-            <Link className="text-accent-text" to="/catalogo">
-              Explora el catálogo
+            <Link className="text-accent-text" to="/inicio">
+              Explora el foro
             </Link>{" "}
             y comenta una película.
           </p>

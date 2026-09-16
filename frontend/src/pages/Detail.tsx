@@ -3,6 +3,7 @@ import { Link, useNavigate, useParams } from "react-router-dom";
 import { api, ApiError } from "../api/client";
 import { useAuth } from "../auth/AuthContext";
 import { HorizontalScroller } from "../components/HorizontalScroller";
+import { LoadingScreen } from "../components/LoadingScreen";
 import { forumStars, StarRating } from "../components/StarRating";
 import { fieldClass, hoverLiftClass, metaClass, pageClass, playBtnClass, sectionTitleClass } from "../ui";
 
@@ -110,7 +111,7 @@ export function DetailPage() {
   }
 
   if (error) return <div className={`${pageClass} text-[#ff8a80]`}>{error}</div>;
-  if (!item) return <div className={pageClass}>Cargando ficha…</div>;
+  if (!item || Number(item.id) !== movieId) return <LoadingScreen />;
 
   const extra = item.detalles_extra || {};
   const year = (extra.release_date || "").slice(0, 4);
@@ -135,8 +136,8 @@ export function DetailPage() {
         className="max-w-full overflow-hidden bg-[#0d0d0d] bg-cover bg-center py-7 pr-6 pl-14 max-md:pl-12"
         style={backdrop ? { backgroundImage: `linear-gradient(rgba(0,0,0,.55), rgba(0,0,0,.78)), url(${backdrop})` } : undefined}
       >
-        <Link className="text-sm text-white" to="/catalogo">
-          ← Volver al catálogo
+        <Link className="text-sm text-white" to="/inicio">
+          ← Volver al inicio
         </Link>
         <div className="mt-[18px] flex min-w-0 items-start gap-7 max-md:flex-col">
           {item.poster_url ? (

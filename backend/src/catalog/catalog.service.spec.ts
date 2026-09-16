@@ -61,6 +61,37 @@ describe("CatalogService", () => {
     expect(rows.map((row) => row.id)).toEqual([111, 222]);
   });
 
+  it("lists recent reviews with movie and user data", async () => {
+    prisma.review.findMany.mockResolvedValue([
+      {
+        id: 9,
+        userId: 1,
+        peliculaId: 111,
+        rating: 4,
+        comment: "Buena",
+        createdAt: new Date("2026-03-01"),
+        user: { username: "ana" },
+        pelicula: { titulo: "Dune", posterUrl: "/d.jpg" },
+      },
+    ]);
+    await expect(service.listRecentReviews(8)).resolves.toEqual([
+      {
+        id: 9,
+        user_id: 1,
+        username: "ana",
+        pelicula_id: 111,
+        titulo: "Dune",
+        poster_url: "/d.jpg",
+        rating: 4,
+        comment: "Buena",
+        created_at: new Date("2026-03-01"),
+      },
+    ]);
+    expect(prisma.review.findMany).toHaveBeenCalledWith(
+      expect.objectContaining({ take: 8, orderBy: { createdAt: "desc" } }),
+    );
+  });
+
   it("returns no reviews when the movie is not in the database", async () => {
     prisma.pelicula.findUnique.mockResolvedValue(null);
     await expect(service.listReviews(99)).resolves.toEqual([]);

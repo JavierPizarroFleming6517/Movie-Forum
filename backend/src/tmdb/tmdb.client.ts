@@ -3,6 +3,7 @@ import { ConfigService } from "@nestjs/config";
 
 export const TMDB_API = "https://api.themoviedb.org/3";
 export const TMDB_IMAGE_BASE = "https://image.tmdb.org/t/p/w500";
+export const TMDB_BACKDROP_BASE = "https://image.tmdb.org/t/p/w1280";
 export const MOVIE = "pelicula";
 export const TV = "serie";
 
@@ -62,6 +63,11 @@ const GENRE_CACHE_TTL_MS = 6 * 60 * 60 * 1000;
 export function buildPosterUrl(posterPath?: string | null): string | null {
   if (!posterPath) return null;
   return `${TMDB_IMAGE_BASE}${posterPath}`;
+}
+
+export function buildBackdropUrl(backdropPath?: string | null): string | null {
+  if (!backdropPath) return null;
+  return `${TMDB_BACKDROP_BASE}${backdropPath}`;
 }
 
 type TmdbJson = Record<string, unknown>;
@@ -160,6 +166,10 @@ export class TmdbClient {
 
   fetchTrendingTv(page = 1) {
     return this.get("/trending/tv/week", { page });
+  }
+
+  fetchTrendingPeople(page = 1) {
+    return this.get("/trending/person/week", { page });
   }
 
   discoverTv(genreId?: number, page = 1) {

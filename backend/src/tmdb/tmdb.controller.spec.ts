@@ -14,6 +14,7 @@ describe("TmdbController", () => {
     listGenre: jest.fn().mockResolvedValue({ results: [] }),
     listCollection: jest.fn().mockResolvedValue({ results: [] }),
     listTvHome: jest.fn().mockResolvedValue({ rows: [] }),
+    listPeople: jest.fn().mockResolvedValue({ results: [] }),
   };
   const controller = new TmdbController(tmdb as unknown as TmdbService);
 
@@ -35,6 +36,8 @@ describe("TmdbController", () => {
     await controller.serieGenero(18, "1");
     await controller.coleccionSeries("populares", "1");
     await controller.serieTrailer(9);
+    await controller.personas();
+    expect(tmdb.listPeople).toHaveBeenCalled();
     expect(tmdb.search).toHaveBeenCalledWith("");
     expect(tmdb.populares).toHaveBeenCalledWith(1);
     expect(tmdb.listGenre).toHaveBeenCalledWith(28, 1);

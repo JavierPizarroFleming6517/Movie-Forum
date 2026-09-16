@@ -43,6 +43,18 @@ describe("TmdbService", () => {
       fetchMovie: jest.fn(),
       fetchMovieVideos: jest.fn(),
       fetchTvVideos: jest.fn(),
+      fetchTrendingPeople: jest.fn().mockResolvedValue({
+        results: [
+          {
+            id: 7,
+            name: "Ana",
+            profile_path: "/a.jpg",
+            known_for_department: "Acting",
+            known_for: [{ title: "Dune" }, { name: "Serie" }],
+          },
+          { id: 8, name: "Director", known_for_department: "Directing" },
+        ],
+      }),
     };
     prisma = {
       review: { groupBy: jest.fn().mockResolvedValue([]) },
@@ -65,6 +77,21 @@ describe("TmdbService", () => {
       expect.objectContaining({ id: 2, titulo: "Sin título" }),
       expect.objectContaining({ id: 3, titulo: "Serie" }),
     ]);
+  });
+
+  it("lists trending actors", async () => {
+    await expect(service.listPeople()).resolves.toEqual({
+      title: "Rostros de la semana",
+      results: [
+        {
+          id: 7,
+          nombre: "Ana",
+          foto_url: "https://image.tmdb.org/t/p/w500/a.jpg",
+          departamento: "Acting",
+          obras: ["Dune", "Serie"],
+        },
+      ],
+    });
   });
 
   it("searches and lists populares", async () => {

@@ -6,6 +6,7 @@ describe("CatalogController", () => {
   const catalog = {
     listCatalog: jest.fn().mockResolvedValue([]),
     listReviews: jest.fn().mockResolvedValue([]),
+    listRecentReviews: jest.fn().mockResolvedValue([]),
     upsertReview: jest.fn().mockResolvedValue({ id: 1 }),
   };
   const controller = new CatalogController(catalog as unknown as CatalogService);
@@ -19,6 +20,11 @@ describe("CatalogController", () => {
   it("accepts valoradas", async () => {
     await controller.list("valoradas");
     expect(catalog.listCatalog).toHaveBeenCalledWith("valoradas");
+  });
+
+  it("lists recent reviews", async () => {
+    await controller.recientes();
+    expect(catalog.listRecentReviews).toHaveBeenCalled();
   });
 
   it("lists reviews", async () => {

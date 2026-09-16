@@ -52,6 +52,25 @@ export class CatalogService {
     });
   }
 
+  async listRecentReviews(limit = 10) {
+    const reviews = await this.prisma.review.findMany({
+      include: { user: true, pelicula: true },
+      orderBy: { createdAt: "desc" },
+      take: limit,
+    });
+    return reviews.map((review) => ({
+      id: review.id,
+      user_id: review.userId,
+      username: review.user.username,
+      pelicula_id: review.peliculaId,
+      titulo: review.pelicula.titulo,
+      poster_url: review.pelicula.posterUrl,
+      rating: review.rating,
+      comment: review.comment,
+      created_at: review.createdAt,
+    }));
+  }
+
   async listReviews(peliculaId: number) {
     const pelicula = await this.prisma.pelicula.findUnique({ where: { id: peliculaId } });
     if (!pelicula) return [];

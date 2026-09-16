@@ -1,12 +1,19 @@
 import { HttpException, HttpStatus } from "@nestjs/common";
 import { ConfigService } from "@nestjs/config";
-import { TmdbClient, buildPosterUrl, MOVIE, TMDB_API } from "./tmdb.client";
+import { TmdbClient, buildBackdropUrl, buildPosterUrl, MOVIE, TMDB_API } from "./tmdb.client";
 
 describe("buildPosterUrl", () => {
   it("builds a w500 URL or returns null", () => {
     expect(buildPosterUrl("/x.jpg")).toBe("https://image.tmdb.org/t/p/w500/x.jpg");
     expect(buildPosterUrl(null)).toBeNull();
     expect(buildPosterUrl()).toBeNull();
+  });
+});
+
+describe("buildBackdropUrl", () => {
+  it("builds a wide backdrop URL or returns null", () => {
+    expect(buildBackdropUrl("/b.jpg")).toBe("https://image.tmdb.org/t/p/w1280/b.jpg");
+    expect(buildBackdropUrl(null)).toBeNull();
   });
 });
 

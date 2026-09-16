@@ -36,6 +36,11 @@ export class TmdbController {
     return this.tmdb.listHome();
   }
 
+  @Get("personas")
+  personas() {
+    return this.tmdb.listPeople();
+  }
+
   @Get("generos/peliculas")
   generosPeliculas() {
     return this.tmdb.listGenres(MOVIE);

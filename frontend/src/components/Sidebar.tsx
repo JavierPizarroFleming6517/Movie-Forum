@@ -1,7 +1,8 @@
 import { useEffect, useState } from "react";
-import { Link, NavLink, useLocation } from "react-router-dom";
+import { NavLink, useLocation } from "react-router-dom";
+import { Brand } from "./Brand";
 import { useAuth } from "../auth/AuthContext";
-import { brandClass, cn } from "../ui";
+import { cn } from "../ui";
 
 type Collection = { clave: string; titulo: string };
 type Genre = { id: number; nombre: string };
@@ -104,7 +105,7 @@ export function Sidebar({
   const genres = scope === "serie"
     ? (tv?.generos?.length ? tv.generos : FALLBACK_TV_GENRES)
     : (movie?.generos?.length ? movie.generos : FALLBACK_MOVIE_GENRES);
-  const home = scope === "serie" ? "/series" : "/catalogo";
+  const home = "/inicio";
 
   if (!open) return null;
 
@@ -114,10 +115,8 @@ export function Sidebar({
         className="fixed top-0 bottom-0 left-0 z-[31] w-[320px] overflow-auto bg-header pb-8 max-md:w-[86vw]"
         onClick={(e) => e.stopPropagation()}
       >
-        <div className="flex items-center justify-between px-4 py-3">
-          <Link className={brandClass} to="/catalogo" onClick={onClose}>
-            FOROPELIS
-          </Link>
+        <div className="flex items-center justify-between px-4 py-4">
+          <Brand onClick={onClose} />
           <button
             type="button"
             className="inline-flex h-9 w-9 cursor-pointer items-center justify-center rounded-full border-0 bg-transparent text-white hover:bg-white/10"

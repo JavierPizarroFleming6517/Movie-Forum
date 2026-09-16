@@ -1,6 +1,7 @@
 import { useEffect, useState } from "react";
 import { useLocation, useParams, useSearchParams } from "react-router-dom";
 import { api, ApiError } from "../api/client";
+import { LoadingScreen } from "../components/LoadingScreen";
 import { PosterRow } from "../components/PosterRow";
 import { pageClass } from "../ui";
 
@@ -23,22 +24,28 @@ export function CatalogPage() {
   const { collection, genreId, kind } = useParams();
   const [params] = useSearchParams();
   const location = useLocation();
+  const routeKey = `${location.pathname}${location.search}`;
   const [heading, setHeading] = useState("Explora el contenido");
   const [sub, setSub] = useState("Populares, cartelera, estrenos y categorías");
   const [rows, setRows] = useState<any[]>([]);
   const [error, setError] = useState("");
+  const [readyKey, setReadyKey] = useState("");
 
   useEffect(() => {
     let cancelled = false;
     async function load() {
       setError("");
+      function finish(next: any[]) {
+        setRows(next);
+        setReadyKey(routeKey);
+      }
       try {
         if (location.pathname.startsWith("/buscar")) {
           const q = params.get("q") || "";
           setHeading(`Resultados para "${q}"`);
           setSub("Búsqueda en el catálogo de TMDB");
           const data = await api.search(q);
-          if (!cancelled) setRows([{ title: `Resultados para "${q}"`, results: data.results || [], media: "pelicula" }]);
+          if (!cancelled) finish([{ title: `Resultados para "${q}"`, results: data.results || [], media: "pelicula" }]);
           return;
         }
         if (location.pathname.startsWith("/foro/") && kind) {
@@ -46,71 +53,61 @@ export function CatalogPage() {
           setHeading(title);
           setSub(subtitle);
           const items = await api.catalog(kind === "valoradas" ? "valoradas" : "comentadas");
-          if (!cancelled) setRows([{ title, results: communityCards(items), media: "pelicula" }]);
+          if (!cancelled) finish([{ title, results: communityCards(items), media: "pelicula" }]);
           return;
         }
         if (location.pathname.startsWith("/series/genero/") && genreId) {
           const data = await api.tvGenre(Number(genreId));
           setHeading(data.title || params.get("nombre") || "Género");
           setSub("Series por género de TV");
-          if (!cancelled) setRows([{ ...data, media: "serie" }]);
+          if (!cancelled) finish([{ ...data, media: "serie" }]);
           return;
         }
         if (location.pathname.startsWith("/genero/") && genreId) {
           const data = await api.genre(Number(genreId));
           setHeading(data.title || params.get("nombre") || "Género");
           setSub("Películas por categoría");
-          if (!cancelled) setRows([data]);
+          if (!cancelled) finish([data]);
           return;
         }
         if (location.pathname.startsWith("/series/") && collection) {
           const data = await api.collection("serie", collection);
           setHeading(data.title || collection);
           setSub("Series");
-          if (!cancelled) setRows([{ ...data, media: "serie" }]);
+          if (!cancelled) finish([{ ...data, media: "serie" }]);
           return;
         }
         if (location.pathname.startsWith("/peliculas/") && collection) {
           const data = await api.collection("pelicula", collection);
           setHeading(data.title || collection);
           setSub("Películas");
-          if (!cancelled) setRows([data]);
+          if (!cancelled) finish([data]);
           return;
         }
         if (location.pathname === "/series") {
           setHeading("Series y televisión");
           setSub("Populares, en emisión y géneros de TV");
           const data = await api.tvHome();
-          if (!cancelled) setRows(data.rows || []);
+          if (!cancelled) finish(data.rows || []);
           return;
         }
-        setHeading("Explora el contenido");
-        setSub("Populares, cartelera, estrenos y categorías");
-        const [home, community] = await Promise.all([api.home(), api.catalog()]);
-        const next = [...(home.rows || [])];
-        if (community.length) {
-          const comentadas = [...community].sort(
-            (a, b) => (b.review_count || 0) - (a.review_count || 0),
-          );
-          const valoradas = [...community].sort(
-            (a, b) => (b.average_rating || 0) - (a.average_rating || 0) || (b.review_count || 0) - (a.review_count || 0),
-          );
-          next.splice(1, 0, { title: "Las más comentadas", results: communityCards(comentadas).slice(0, 20) });
-          next.splice(2, 0, {
-            title: "Mejor valoradas por la comunidad",
-            results: communityCards(valoradas).slice(0, 20),
-          });
-        }
-        if (!cancelled) setRows(next);
+        setHeading("Esta sección no está disponible");
+        setSub("Vuelve al inicio o elige una colección, un género o un tema del foro");
+        if (!cancelled) finish([]);
       } catch (err) {
-        if (!cancelled) setError(err instanceof ApiError ? err.message : "No se pudo cargar el catálogo");
+        if (!cancelled) {
+          setError(err instanceof ApiError ? err.message : "No se pudo cargar el catálogo");
+          setReadyKey(routeKey);
+        }
       }
     }
     load();
     return () => {
       cancelled = true;
     };
-  }, [location.pathname, location.search, collection, genreId, kind, params]);
+  }, [location.pathname, location.search, collection, genreId, kind, params, routeKey]);
+
+  if (readyKey !== routeKey) return <LoadingScreen />;
 
   return (
     <div className={pageClass}>

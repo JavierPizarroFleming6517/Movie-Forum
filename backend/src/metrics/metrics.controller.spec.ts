@@ -20,6 +20,7 @@ describe("MetricsController", () => {
     };
     const controller = new MetricsController(prisma as unknown as PrismaService);
     const result = await controller.metrics();
+    expect(prisma.review.groupBy).toHaveBeenCalledWith(expect.objectContaining({ take: 10 }));
     expect(result.users).toBe(3);
     expect(result.global_average_rating).toBe(8.25);
     expect(result.top_titles[0]).toMatchObject({ id: 111, title: "Dune", average_rating: 9.1 });

@@ -21,7 +21,7 @@ export class MetricsController {
       _avg: { rating: true },
       _count: { id: true },
       orderBy: { _avg: { rating: "desc" } },
-      take: 5,
+      take: 10,
     });
     const movies = await this.prisma.pelicula.findMany({
       where: { id: { in: top.map((row) => row.peliculaId) } },

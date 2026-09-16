@@ -13,6 +13,11 @@ export class CatalogController {
     return this.catalog.listCatalog(sort);
   }
 
+  @Get("recientes")
+  recientes() {
+    return this.catalog.listRecentReviews();
+  }
+
   @Get(":itemId/reviews")
   reviews(@Param("itemId", ParseIntPipe) itemId: number) {
     return this.catalog.listReviews(itemId);
