@@ -19,9 +19,13 @@ export const playBtnClass =
 
 export const shellClass = "mx-auto w-full max-w-[1280px] px-6";
 
-export const pageClass = `${shellClass} min-w-0 pb-12 pt-6`;
+export const pageClass = "min-w-0 pb-12 pt-6";
 
 export const metaClass = "text-[13px] text-muted";
+
+export function titleHref(id: number, media: "pelicula" | "serie" = "pelicula") {
+  return media === "serie" ? `/serie/${id}` : `/pelicula/${id}`;
+}
 
 export const hoverLiftClass =
   "transition duration-200 ease-out hover:z-[1] hover:scale-[1.08] hover:shadow-[0_12px_28px_#000c]";

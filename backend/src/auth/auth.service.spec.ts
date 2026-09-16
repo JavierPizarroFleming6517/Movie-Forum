@@ -130,4 +130,18 @@ describe("AuthService", () => {
       },
     ]);
   });
+
+  it("skips reviews whose movie is missing", async () => {
+    prisma.review.findMany.mockResolvedValue([
+      {
+        id: 2,
+        rating: 3,
+        comment: "Huérfana",
+        createdAt: new Date("2026-03-01"),
+        peliculaId: 99,
+        pelicula: null,
+      },
+    ]);
+    await expect(service.listMyReviews(user)).resolves.toEqual([]);
+  });
 });

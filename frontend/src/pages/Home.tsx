@@ -5,7 +5,7 @@ import { HorizontalScroller } from "../components/HorizontalScroller";
 import { LoadingScreen } from "../components/LoadingScreen";
 import { PosterRow } from "../components/PosterRow";
 import { forumStars, StarRating } from "../components/StarRating";
-import { cn, metaClass, pageClass, sectionTitleClass } from "../ui";
+import { cn, metaClass, pageClass, sectionTitleClass, titleHref } from "../ui";
 
 type Media = "pelicula" | "serie";
 
@@ -66,7 +66,7 @@ function yearOf(item?: Title | null) {
 }
 
 function hrefFor(item: Title, media: Media = "pelicula") {
-  return media === "serie" ? `/buscar?q=${encodeURIComponent(item.titulo || "")}` : `/pelicula/${item.id}`;
+  return titleHref(item.id, media);
 }
 
 function coverOf(item?: Title | null) {

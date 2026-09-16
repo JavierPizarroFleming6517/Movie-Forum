@@ -62,9 +62,11 @@ describe("TmdbClient", () => {
   it("exposes list helpers", async () => {
     const get = jest.spyOn(client, "get").mockResolvedValue({ results: [] });
     await client.fetchMovie(1);
+    await client.fetchTv(9);
     await client.fetchMovieVideos(1, "es-ES");
     await client.fetchTvVideos(2, "en-US");
     await client.searchMovies("dune");
+    await client.searchTv("silo");
     await client.fetchPopularMovies(2);
     await client.fetchTopRatedMovies();
     await client.fetchNowPlayingMovies();

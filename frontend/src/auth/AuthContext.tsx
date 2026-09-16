@@ -1,5 +1,5 @@
 import { createContext, useContext, useEffect, useMemo, useState, type ReactNode } from "react";
-import { api } from "../api/client";
+import { api, ApiError } from "../api/client";
 
 type Session = { token: string; id: number; username: string; isAdmin: boolean } | null;
 
@@ -16,6 +16,13 @@ function persist(session: NonNullable<Session>) {
   localStorage.setItem("userId", String(session.id));
   localStorage.setItem("username", session.username);
   localStorage.setItem("isAdmin", session.isAdmin ? "1" : "0");
+}
+
+function wipe() {
+  localStorage.removeItem("token");
+  localStorage.removeItem("userId");
+  localStorage.removeItem("username");
+  localStorage.removeItem("isAdmin");
 }
 
 export function AuthProvider({ children }: { children: ReactNode }) {
@@ -43,8 +50,11 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         persist(next);
         setState(next);
       })
-      .catch(() => {
-        /* keep cached session */
+      .catch((err) => {
+        if (cancelled) return;
+        if (!(err instanceof ApiError) || err.status !== 401) return;
+        wipe();
+        setState(null);
       });
     return () => {
       cancelled = true;
@@ -60,10 +70,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         setState(next);
       },
       clear: () => {
-        localStorage.removeItem("token");
-        localStorage.removeItem("userId");
-        localStorage.removeItem("username");
-        localStorage.removeItem("isAdmin");
+        wipe();
         setState(null);
       },
     }),

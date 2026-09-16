@@ -1,6 +1,7 @@
 import { useEffect, useState } from "react";
 import { useLocation, useParams, useSearchParams } from "react-router-dom";
 import { api, ApiError } from "../api/client";
+import { BrowseLayout } from "../components/BrowseLayout";
 import { LoadingScreen } from "../components/LoadingScreen";
 import { PosterRow } from "../components/PosterRow";
 import { pageClass } from "../ui";
@@ -17,6 +18,9 @@ function communityCards(items: any[]) {
     poster_url: item.poster_url,
     valoracion: item.average_rating,
     average_rating: item.average_rating,
+    review_count: item.review_count,
+    sinopsis: item.detalles_extra?.overview || null,
+    fecha_estreno: item.detalles_extra?.release_date || null,
   }));
 }
 
@@ -43,7 +47,7 @@ export function CatalogPage() {
         if (location.pathname.startsWith("/buscar")) {
           const q = params.get("q") || "";
           setHeading(`Resultados para "${q}"`);
-          setSub("Búsqueda en el catálogo de TMDB");
+          setSub("Búsqueda en películas de TMDB");
           const data = await api.search(q);
           if (!cancelled) finish([{ title: `Resultados para "${q}"`, results: data.results || [], media: "pelicula" }]);
           return;
@@ -59,7 +63,7 @@ export function CatalogPage() {
         if (location.pathname.startsWith("/series/genero/") && genreId) {
           const data = await api.tvGenre(Number(genreId));
           setHeading(data.title || params.get("nombre") || "Género");
-          setSub("Series por género de TV");
+          setSub("Series por género");
           if (!cancelled) finish([{ ...data, media: "serie" }]);
           return;
         }
@@ -109,19 +113,32 @@ export function CatalogPage() {
 
   if (readyKey !== routeKey) return <LoadingScreen />;
 
+  const single = rows.length === 1 ? rows[0] : null;
+
   return (
     <div className={pageClass}>
-      <h1 className="mb-1 text-[30px]">{heading}</h1>
-      <p className="mb-6 text-[13px] text-muted">{sub}</p>
-      {error && <p className="text-[#ff8a80]">{error}</p>}
-      {rows.map((row) => (
-        <PosterRow
-          key={row.id || row.title}
-          title={row.title || "Catálogo"}
-          items={row.results || []}
-          media={row.media === "serie" ? "serie" : "pelicula"}
+      {error && <p className="mb-6 text-[#ff8a80]">{error}</p>}
+      {single ? (
+        <BrowseLayout
+          heading={heading}
+          sub={sub}
+          items={single.results || []}
+          media={single.media === "serie" ? "serie" : "pelicula"}
         />
-      ))}
+      ) : (
+        <>
+          <h1 className="mb-1 text-[30px]">{heading}</h1>
+          <p className="mb-6 text-[13px] text-muted">{sub}</p>
+          {rows.map((row) => (
+            <PosterRow
+              key={row.id || row.title}
+              title={row.title || "Catálogo"}
+              items={row.results || []}
+              media={row.media === "serie" ? "serie" : "pelicula"}
+            />
+          ))}
+        </>
+      )}
     </div>
   );
 }

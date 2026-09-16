@@ -24,6 +24,7 @@ export default function App() {
             <Route path="/buscar" element={<CatalogPage />} />
             <Route path="/foro/:kind" element={<CatalogPage />} />
             <Route path="/pelicula/:id" element={<DetailPage />} />
+            <Route path="/serie/:id" element={<DetailPage />} />
             <Route path="/cuenta" element={<AuthPage />} />
             <Route path="/metricas" element={<MetricsPage />} />
             <Route path="*" element={<Navigate to="/inicio" replace />} />

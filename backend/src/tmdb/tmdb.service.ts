@@ -8,6 +8,8 @@ import {
   TmdbClient,
   buildBackdropUrl,
   buildPosterUrl,
+  storageId,
+  TV_STORAGE_OFFSET,
 } from "./tmdb.client";
 
 const TRAILER_LANGUAGES = ["es-ES", "en-US"] as const;
@@ -263,44 +265,79 @@ export class TmdbService {
     reviewCount = 0,
     averageRating: number | null = null,
   ) {
+    const extra = (item.detallesExtra as Record<string, unknown>) || {};
+    const isTv = extra.media_type === TV || item.id >= TV_STORAGE_OFFSET;
     return {
-      id: item.id,
+      id: isTv ? item.id - TV_STORAGE_OFFSET : item.id,
+      media: isTv ? TV : MOVIE,
       titulo: item.titulo,
       poster_url: item.posterUrl,
-      detalles_extra: item.detallesExtra || {},
+      detalles_extra: extra,
       review_count: reviewCount,
       average_rating: averageRating != null ? Math.round(averageRating * 100) / 100 : null,
     };
   }
 
-  async persistFromTmdb(payload: TmdbItem) {
+  async persistFromTmdb(payload: TmdbItem, opts?: { storageId?: number; media?: string }) {
     const tmdbId = Number(payload.id);
-    const reserved = new Set(["id", "title", "original_title", "poster_path"]);
-    const detallesExtra: Record<string, unknown> = {};
+    const id = opts?.storageId ?? tmdbId;
+    const reserved = new Set(["id", "title", "original_title", "name", "original_name", "poster_path"]);
+    const detallesExtra: Record<string, unknown> = { media_type: opts?.media || MOVIE };
     for (const [key, value] of Object.entries(payload)) {
       if (!reserved.has(key)) detallesExtra[key] = value;
     }
-    const titulo = payload.title || payload.original_title || "Sin título";
+    const titulo =
+      payload.title || payload.name || payload.original_title || payload.original_name || "Sin título";
     const posterUrl = buildPosterUrl(payload.poster_path);
     return this.prisma.pelicula.upsert({
-      where: { id: tmdbId },
-      create: { id: tmdbId, titulo, posterUrl, detallesExtra: detallesExtra as Prisma.InputJsonValue },
+      where: { id },
+      create: { id, titulo, posterUrl, detallesExtra: detallesExtra as Prisma.InputJsonValue },
       update: { titulo, posterUrl: posterUrl ?? undefined, detallesExtra: detallesExtra as Prisma.InputJsonValue },
     });
   }
 
-  async getOrImport(tmdbId: number) {
-    const existing = await this.prisma.pelicula.findUnique({ where: { id: tmdbId } });
+  async getOrImport(tmdbId: number, media = MOVIE) {
+    const id = storageId(tmdbId, media);
+    const existing = await this.prisma.pelicula.findUnique({ where: { id } });
     const extra = (existing?.detallesExtra as Record<string, unknown>) || {};
     const stats = await this.statsByItem();
-    if (existing && extra.credits) {
+    const cachedCast = ((extra.credits as TmdbItem)?.cast as TmdbItem[]) || [];
+    const ready =
+      existing && extra.credits && (media !== TV || (extra.related_search && cachedCast.length > 0));
+    if (ready) {
       const stat = stats.get(existing.id);
       return this.toRead(existing, stat?.count || 0, stat?.avg ?? null);
     }
-    const payload = await this.tmdb.fetchMovie(tmdbId);
-    const pelicula = await this.persistFromTmdb(payload);
+    const payload = media === TV ? await this.tmdb.fetchTv(tmdbId) : await this.tmdb.fetchMovie(tmdbId);
+    if (media === TV) {
+      payload.credits = { ...((payload.credits as TmdbItem) || {}), cast: this.seriesCast(payload) };
+      const query = String(payload.name || payload.original_name || "").trim();
+      if (query) {
+        try {
+          const found = await this.tmdb.searchTv(query);
+          payload.related_search = ((found.results as TmdbItem[]) || [])
+            .filter((item) => Number(item.id) !== tmdbId)
+            .slice(0, 12);
+        } catch {
+          payload.related_search = [];
+        }
+      }
+    }
+    const pelicula = await this.persistFromTmdb(payload, { storageId: id, media });
     const fresh = await this.statsByItem();
     const stat = fresh.get(pelicula.id);
     return this.toRead(pelicula, stat?.count || 0, stat?.avg ?? null);
+  }
+
+  private seriesCast(payload: TmdbItem) {
+    const aggregate = (((payload.aggregate_credits as TmdbItem)?.cast as TmdbItem[]) || []);
+    const credits = (((payload.credits as TmdbItem)?.cast as TmdbItem[]) || []);
+    const source = aggregate.length ? aggregate : credits;
+    return source.slice(0, 16).map((person) => ({
+      id: person.id,
+      name: person.name,
+      profile_path: person.profile_path || null,
+      character: person.character || person.roles?.[0]?.character || "",
+    }));
   }
 }

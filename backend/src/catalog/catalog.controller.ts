@@ -19,8 +19,8 @@ export class CatalogController {
   }
 
   @Get(":itemId/reviews")
-  reviews(@Param("itemId", ParseIntPipe) itemId: number) {
-    return this.catalog.listReviews(itemId);
+  reviews(@Param("itemId", ParseIntPipe) itemId: number, @Query("media") media?: string) {
+    return this.catalog.listReviews(itemId, media);
   }
 
   @Post(":itemId/reviews")
@@ -29,7 +29,8 @@ export class CatalogController {
     @Param("itemId", ParseIntPipe) itemId: number,
     @Body() payload: ReviewDto,
     @Req() req: { user: User },
+    @Query("media") media?: string,
   ) {
-    return this.catalog.upsertReview(itemId, req.user, payload);
+    return this.catalog.upsertReview(itemId, req.user, payload, media);
   }
 }

@@ -1,11 +1,12 @@
 import { useEffect, useState, type FormEvent } from "react";
-import { Link, useNavigate, useParams } from "react-router-dom";
+import { Link, useLocation, useNavigate, useParams } from "react-router-dom";
 import { api, ApiError } from "../api/client";
 import { useAuth } from "../auth/AuthContext";
 import { HorizontalScroller } from "../components/HorizontalScroller";
 import { LoadingScreen } from "../components/LoadingScreen";
 import { forumStars, StarRating } from "../components/StarRating";
-import { fieldClass, hoverLiftClass, metaClass, pageClass, playBtnClass, sectionTitleClass } from "../ui";
+import { fieldClass, hoverLiftClass, metaClass, pageClass, playBtnClass, sectionTitleClass, titleHref } from "../ui";
+import { rememberRecent } from "../recent";
 
 const STATUS_ES: Record<string, string> = {
   Released: "Estrenada",
@@ -14,6 +15,9 @@ const STATUS_ES: Record<string, string> = {
   Planned: "Planificada",
   Rumored: "Rumoreada",
   Canceled: "Cancelada",
+  "Returning Series": "En emisión",
+  Ended: "Finalizada",
+  Pilot: "Piloto",
 };
 
 const LANG_ES: Record<string, string> = {
@@ -32,6 +36,8 @@ const LANG_ES: Record<string, string> = {
 
 export function DetailPage() {
   const { id } = useParams();
+  const location = useLocation();
+  const media = location.pathname.startsWith("/serie/") ? "serie" : "pelicula";
   const movieId = Number(id);
   const navigate = useNavigate();
   const { session } = useAuth();
@@ -52,11 +58,11 @@ export function DetailPage() {
 
     async function loadMovie() {
       try {
-        const movie = await api.movie(movieId);
+        const movie = media === "serie" ? await api.show(movieId) : await api.movie(movieId);
         if (cancelled) return;
         setItem(movie);
         try {
-          const list = await api.reviews(movieId);
+          const list = await api.reviews(movieId, media);
           if (!cancelled) setReviews(list);
         } catch {
           if (!cancelled) setReviews([]);
@@ -70,11 +76,21 @@ export function DetailPage() {
     return () => {
       cancelled = true;
     };
-  }, [movieId]);
+  }, [movieId, media]);
+
+  useEffect(() => {
+    if (!item || Number(item.id) !== movieId) return;
+    rememberRecent({
+      id: item.id,
+      titulo: item.titulo,
+      poster_url: item.poster_url,
+      media,
+    });
+  }, [item, movieId, media]);
 
   async function openTrailer() {
     try {
-      const data = await api.trailer(movieId);
+      const data = await api.trailer(movieId, media);
       window.open(data.url, "_blank", "noopener,noreferrer");
     } catch (err) {
       setFormStatus(err instanceof ApiError ? err.message : "Sin tráiler");
@@ -96,12 +112,12 @@ export function DetailPage() {
       return;
     }
     try {
-      await api.upsertReview(movieId, rating, comment.trim());
+      await api.upsertReview(movieId, rating, comment.trim(), media);
       setFormStatus("Reseña guardada");
       setComment("");
       setRating(0);
       try {
-        setReviews(await api.reviews(movieId));
+        setReviews(await api.reviews(movieId, media));
       } catch {
         /* la ficha ya está visible */
       }
@@ -114,26 +130,34 @@ export function DetailPage() {
   if (!item || Number(item.id) !== movieId) return <LoadingScreen />;
 
   const extra = item.detalles_extra || {};
-  const year = (extra.release_date || "").slice(0, 4);
+  const year = (extra.release_date || extra.first_air_date || "").slice(0, 4);
   const backdrop = extra.backdrop_path ? `https://image.tmdb.org/t/p/w1280${extra.backdrop_path}` : "";
-  const cast = extra.credits?.cast?.slice(0, 12) || [];
-  const recs = extra.recommendations?.results?.slice(0, 10) || [];
-  const keywords = (extra.keywords?.keywords || extra.keywords || [])
+  const cast = mainCast(extra);
+  const recs = relatedTitles(extra, movieId);
+  const keywords = (extra.keywords?.keywords || extra.keywords?.results || extra.keywords || [])
     .map((kw: any) => kw?.name)
     .filter(Boolean)
     .slice(0, 16);
-  const directors = crewNames(extra, ["Director"]);
-  const writers = crewNames(extra, ["Screenplay", "Writer"]);
+  const directors =
+    media === "serie"
+      ? (extra.created_by || []).map((person: any) => person.name).filter(Boolean)
+      : crewNames(extra, ["Director"]);
+  const writers = media === "serie" ? [] : crewNames(extra, ["Screenplay", "Writer"]);
   const score = extra.vote_average ? Math.round(Number(extra.vote_average) * 10) : null;
-  const facts = [certification(extra), formatDate(extra.release_date), genres(extra), runtime(extra.runtime)]
+  const facts = [
+    certification(extra),
+    formatDate(extra.release_date || extra.first_air_date),
+    genres(extra),
+    media === "serie" ? seasons(extra) : runtime(extra.runtime),
+  ]
     .filter(Boolean)
     .join(" · ");
   const original = extra.original_language || "";
 
   return (
-    <div>
+    <div className={pageClass}>
       <section
-        className="max-w-full overflow-hidden bg-[#0d0d0d] bg-cover bg-center py-7 pr-6 pl-14 max-md:pl-12"
+        className="overflow-hidden rounded-lg bg-[#0d0d0d] bg-cover bg-center p-6"
         style={backdrop ? { backgroundImage: `linear-gradient(rgba(0,0,0,.55), rgba(0,0,0,.78)), url(${backdrop})` } : undefined}
       >
         <Link className="text-sm text-white" to="/inicio">
@@ -161,7 +185,7 @@ export function DetailPage() {
             <p className="max-w-[72ch] leading-normal">{extra.overview || "Sin sinopsis."}</p>
             <div className="mt-4 flex gap-10">
               <div>
-                <strong>Dirección</strong>
+                <strong>{media === "serie" ? "Creación" : "Dirección"}</strong>
                 <div className={metaClass}>{directors.join(", ") || "—"}</div>
               </div>
               {writers.length > 0 && (
@@ -174,7 +198,7 @@ export function DetailPage() {
           </div>
         </div>
       </section>
-      <div className="grid max-w-full grid-cols-1 gap-8 px-6 pt-7 pr-6 pb-12 pl-14 max-md:pl-12 min-[901px]:grid-cols-[minmax(0,1fr)_260px]">
+      <div className="mt-6 grid grid-cols-1 gap-8 min-[901px]:grid-cols-[minmax(0,1fr)_260px]">
         <div>
           {cast.length > 0 && (
             <section>
@@ -249,7 +273,7 @@ export function DetailPage() {
               <h2 className={sectionTitleClass}>Si te gustó {item.titulo}, también te puede gustar</h2>
               <HorizontalScroller itemWidth={162} ariaLabel="Recomendaciones">
                 {recs.map((rec: any) => (
-                  <Link className={`w-[150px] shrink-0 overflow-hidden rounded-lg text-white ${hoverLiftClass}`} key={rec.id} to={`/pelicula/${rec.id}`}>
+                  <Link className={`w-[150px] shrink-0 overflow-hidden rounded-lg text-white ${hoverLiftClass}`} key={rec.id} to={titleHref(rec.id, media)}>
                     {rec.poster_path ? (
                       <img className="h-[225px] w-[150px] rounded-lg bg-surface-alt object-cover" src={`https://image.tmdb.org/t/p/w500${rec.poster_path}`} alt="" />
                     ) : (
@@ -265,8 +289,18 @@ export function DetailPage() {
         <aside className="grid content-start gap-[18px]">
           <Fact label="Estado" value={STATUS_ES[extra.status] || extra.status || "—"} />
           <Fact label="Idioma original" value={LANG_ES[original] || original.toUpperCase() || "—"} />
-          <Fact label="Presupuesto" value={money(extra.budget)} />
-          <Fact label="Ingresos" value={money(extra.revenue)} />
+          {media === "serie" ? (
+            <>
+              <Fact label="Temporadas" value={String(extra.number_of_seasons || "—")} />
+              <Fact label="Episodios" value={String(extra.number_of_episodes || "—")} />
+              <Fact label="Cadena" value={networks(extra)} />
+            </>
+          ) : (
+            <>
+              <Fact label="Presupuesto" value={money(extra.budget)} />
+              <Fact label="Ingresos" value={money(extra.revenue)} />
+            </>
+          )}
           <div>
             <strong>Palabras clave</strong>
             {keywords.length ? (
@@ -348,6 +382,38 @@ function crewNames(extra: any, jobs: string[]) {
   return names;
 }
 
+function mainCast(extra: any) {
+  const raw = extra.credits?.cast || extra.aggregate_credits?.cast || [];
+  const list = Array.isArray(raw) ? raw : Object.values(raw);
+  return list.slice(0, 12).map((actor: any) => ({
+    ...actor,
+    character: actor.character || actor.roles?.[0]?.character || "",
+  }));
+}
+
+function relatedTitles(extra: any, currentId: number) {
+  const seen = new Set<number>([currentId]);
+  const out: any[] = [];
+  for (const item of [...(extra.related_search || []), ...(extra.recommendations?.results || [])]) {
+    const id = Number(item?.id);
+    if (!id || seen.has(id)) continue;
+    seen.add(id);
+    out.push(item);
+  }
+  return out.slice(0, 12);
+}
+
+function seasons(extra: any) {
+  const count = Number(extra.number_of_seasons);
+  if (!count) return "";
+  return count === 1 ? "1 temporada" : `${count} temporadas`;
+}
+
+function networks(extra: any) {
+  const names = (extra.networks || []).map((item: any) => item.name).filter(Boolean);
+  return names.join(", ") || "—";
+}
+
 function formatDate(value?: string) {
   const text = (value || "").slice(0, 10);
   if (text.length < 10) return "";
@@ -376,6 +442,11 @@ function certification(extra: any) {
       const cert = (release.certification || "").trim();
       if (cert) return cert;
     }
+  }
+  for (const block of extra.content_ratings?.results || []) {
+    if (!["ES", "US", "MX"].includes(block.iso_3166_1)) continue;
+    const cert = (block.rating || "").trim();
+    if (cert) return cert;
   }
   return "";
 }

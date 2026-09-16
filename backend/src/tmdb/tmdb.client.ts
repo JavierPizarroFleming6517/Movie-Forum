@@ -6,6 +6,7 @@ export const TMDB_IMAGE_BASE = "https://image.tmdb.org/t/p/w500";
 export const TMDB_BACKDROP_BASE = "https://image.tmdb.org/t/p/w1280";
 export const MOVIE = "pelicula";
 export const TV = "serie";
+export const TV_STORAGE_OFFSET = 1_000_000_000;
 
 export const GENRES: Record<number, string> = {
   28: "Acción",
@@ -70,6 +71,15 @@ export function buildBackdropUrl(backdropPath?: string | null): string | null {
   return `${TMDB_BACKDROP_BASE}${backdropPath}`;
 }
 
+export function storageId(tmdbId: number, media = MOVIE) {
+  return media === TV ? tmdbId + TV_STORAGE_OFFSET : tmdbId;
+}
+
+export function publicId(storedId: number, media?: string) {
+  if (media === TV || storedId >= TV_STORAGE_OFFSET) return storedId - TV_STORAGE_OFFSET;
+  return storedId;
+}
+
 type TmdbJson = Record<string, unknown>;
 
 @Injectable()
@@ -110,6 +120,12 @@ export class TmdbClient {
     return this.get(`/movie/${id}`, { append_to_response: "credits,keywords,recommendations,release_dates" });
   }
 
+  fetchTv(id: number) {
+    return this.get(`/tv/${id}`, {
+      append_to_response: "credits,aggregate_credits,keywords,recommendations,content_ratings",
+    });
+  }
+
   fetchMovieVideos(id: number, language: string) {
     return this.get(`/movie/${id}/videos`, { language });
   }
@@ -120,6 +136,10 @@ export class TmdbClient {
 
   searchMovies(query: string) {
     return this.get("/search/movie", { query });
+  }
+
+  searchTv(query: string) {
+    return this.get("/search/tv", { query });
   }
 
   fetchPopularMovies(page = 1) {

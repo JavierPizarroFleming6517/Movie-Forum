@@ -36,8 +36,10 @@ describe("TmdbController", () => {
     await controller.serieGenero(18, "1");
     await controller.coleccionSeries("populares", "1");
     await controller.serieTrailer(9);
+    await controller.getSerie(9);
     await controller.personas();
     expect(tmdb.listPeople).toHaveBeenCalled();
+    expect(tmdb.getOrImport).toHaveBeenCalledWith(9, TV);
     expect(tmdb.search).toHaveBeenCalledWith("");
     expect(tmdb.populares).toHaveBeenCalledWith(1);
     expect(tmdb.listGenre).toHaveBeenCalledWith(28, 1);

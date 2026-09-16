@@ -4,6 +4,11 @@ import { Type } from "class-transformer";
 import { User } from "@prisma/client";
 import { PrismaService } from "../prisma/prisma.service";
 import { TmdbService } from "../tmdb/tmdb.service";
+import { storageId, TV } from "../tmdb/tmdb.client";
+
+function itemId(tmdbId: number, media?: string) {
+  return storageId(tmdbId, media === "serie" || media === TV ? TV : undefined);
+}
 
 export class ReviewDto {
   @Type(() => Number)
@@ -71,11 +76,12 @@ export class CatalogService {
     }));
   }
 
-  async listReviews(peliculaId: number) {
-    const pelicula = await this.prisma.pelicula.findUnique({ where: { id: peliculaId } });
+  async listReviews(peliculaId: number, media?: string) {
+    const id = itemId(peliculaId, media);
+    const pelicula = await this.prisma.pelicula.findUnique({ where: { id } });
     if (!pelicula) return [];
     const reviews = await this.prisma.review.findMany({
-      where: { peliculaId },
+      where: { peliculaId: id },
       include: { user: true },
       orderBy: { createdAt: "desc" },
     });
@@ -83,19 +89,20 @@ export class CatalogService {
       id: review.id,
       user_id: review.userId,
       username: review.user.username,
-      pelicula_id: review.peliculaId,
+      pelicula_id: peliculaId,
       rating: review.rating,
       comment: review.comment,
       created_at: review.createdAt,
     }));
   }
 
-  async upsertReview(peliculaId: number, user: User, payload: ReviewDto) {
-    const pelicula = await this.prisma.pelicula.findUnique({ where: { id: peliculaId } });
+  async upsertReview(peliculaId: number, user: User, payload: ReviewDto, media?: string) {
+    const id = itemId(peliculaId, media);
+    const pelicula = await this.prisma.pelicula.findUnique({ where: { id } });
     if (!pelicula) throw new HttpException("Película no encontrada", HttpStatus.NOT_FOUND);
     const review = await this.prisma.review.upsert({
-      where: { userId_peliculaId: { userId: user.id, peliculaId } },
-      create: { userId: user.id, peliculaId, rating: payload.rating, comment: payload.comment },
+      where: { userId_peliculaId: { userId: user.id, peliculaId: id } },
+      create: { userId: user.id, peliculaId: id, rating: payload.rating, comment: payload.comment },
       update: { rating: payload.rating, comment: payload.comment },
       include: { user: true },
     });
@@ -103,7 +110,7 @@ export class CatalogService {
       id: review.id,
       user_id: review.userId,
       username: review.user.username,
-      pelicula_id: review.peliculaId,
+      pelicula_id: peliculaId,
       rating: review.rating,
       comment: review.comment,
       created_at: review.createdAt,

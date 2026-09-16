@@ -69,13 +69,10 @@ export function Layout() {
     else navigate("/inicio");
   }
 
+  const hideFooter = location.pathname === "/cuenta" && !session;
+
   return (
-    <div
-      className={cn(
-        "relative flex min-h-screen max-w-full flex-col overflow-x-hidden",
-        location.pathname === "/cuenta" && !session && "h-screen overflow-hidden",
-      )}
-    >
+    <div className="relative flex min-h-screen max-w-full flex-col overflow-x-hidden">
       <header className="sticky top-0 z-20 overflow-visible bg-header">
         <div className={cn(shellClass, "flex h-[70px] min-w-0 items-center gap-4")}>
           <Brand />
@@ -130,10 +127,10 @@ export function Layout() {
           document.body,
         )}
       <Sidebar menu={menu} open={menuOpen} onClose={() => setMenuOpen(false)} />
-      <div className="relative flex min-h-0 min-w-0 flex-1 flex-col">
+      <div className={cn(shellClass, "relative flex min-h-0 min-w-0 flex-1 flex-col")}>
         <Outlet />
+        {!hideFooter && <Footer />}
       </div>
-      <Footer />
     </div>
   );
 }

@@ -80,4 +80,9 @@ export class TmdbController {
   serieTrailer(@Param("tmdbId", ParseIntPipe) tmdbId: number) {
     return this.tmdb.getTrailer(tmdbId, TV);
   }
+
+  @Get("series/:tmdbId")
+  getSerie(@Param("tmdbId", ParseIntPipe) tmdbId: number) {
+    return this.tmdb.getOrImport(tmdbId, TV);
+  }
 }

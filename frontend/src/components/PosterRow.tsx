@@ -1,7 +1,7 @@
 import { type MouseEvent } from "react";
-import { Link, useNavigate } from "react-router-dom";
+import { Link } from "react-router-dom";
 import { api } from "../api/client";
-import { hoverLiftClass, metaClass, sectionTitleClass } from "../ui";
+import { hoverLiftClass, metaClass, sectionTitleClass, titleHref } from "../ui";
 import { HorizontalScroller } from "./HorizontalScroller";
 
 type Item = {
@@ -25,10 +25,9 @@ export function PosterCard({
   item: Item;
   media?: "pelicula" | "serie";
 }) {
-  const navigate = useNavigate();
   const rating = item.average_rating ?? item.valoracion;
   const year = (item.fecha_estreno || "").slice(0, 4);
-  const href = media === "serie" ? `/buscar?q=${encodeURIComponent(item.titulo || "")}` : `/pelicula/${item.id}`;
+  const href = titleHref(item.id, media);
 
   async function openTrailer(event: MouseEvent) {
     event.preventDefault();
@@ -57,25 +56,12 @@ export function PosterCard({
           {year ? <span className={metaClass}> · {year}</span> : null}
         </div>
         <div className="min-h-[2.6em] overflow-hidden text-sm font-semibold leading-snug">{item.titulo}</div>
-        {media === "serie" ? (
-          <>
-            <button type="button" className={cardBtn} onClick={openTrailer}>
-              Ver tráiler
-            </button>
-            <button type="button" className={cardBtnGhost} onClick={() => navigate(href)}>
-              Buscar título
-            </button>
-          </>
-        ) : (
-          <>
-            <Link className={cardBtn} to={href}>
-              Ver ficha
-            </Link>
-            <button type="button" className={cardBtnGhost} onClick={openTrailer}>
-              Ver tráiler
-            </button>
-          </>
-        )}
+        <Link className={cardBtn} to={href}>
+          Ver ficha
+        </Link>
+        <button type="button" className={cardBtnGhost} onClick={openTrailer}>
+          Ver tráiler
+        </button>
       </div>
     </article>
   );

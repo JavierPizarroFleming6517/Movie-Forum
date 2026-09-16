@@ -41,6 +41,8 @@ describe("TmdbService", () => {
       searchMovies: jest.fn().mockResolvedValue(page("Buscada")),
       fetchGenres: jest.fn().mockResolvedValue([{ 28: "Acción", 18: "Drama" }, "tmdb"]),
       fetchMovie: jest.fn(),
+      fetchTv: jest.fn(),
+      searchTv: jest.fn().mockResolvedValue({ results: [] }),
       fetchMovieVideos: jest.fn(),
       fetchTvVideos: jest.fn(),
       fetchTrendingPeople: jest.fn().mockResolvedValue({
@@ -208,8 +210,70 @@ describe("TmdbService", () => {
     });
     const read = await service.getOrImport(111);
     expect(read.titulo).toBe("Dune");
+    expect(read.media).toBe("pelicula");
     expect(read.review_count).toBe(0);
     expect(prisma.pelicula.upsert).toHaveBeenCalled();
+  });
+
+  it("imports a TV show and related titles by name", async () => {
+    prisma.pelicula.findUnique.mockResolvedValue(null);
+    client.fetchTv.mockResolvedValue({
+      id: 9,
+      name: "Silo",
+      poster_path: "/s.jpg",
+      credits: { cast: [] },
+    });
+    client.searchTv.mockResolvedValue({
+      results: [
+        { id: 9, name: "Silo" },
+        { id: 10, name: "Silo: Trench" },
+      ],
+    });
+    prisma.pelicula.upsert.mockResolvedValue({
+      id: 1_000_000_009,
+      titulo: "Silo",
+      posterUrl: "https://image.tmdb.org/t/p/w500/s.jpg",
+      detallesExtra: { credits: { cast: [] }, related_search: [{ id: 10, name: "Silo: Trench" }], media_type: "serie" },
+    });
+    const read = await service.getOrImport(9, TV);
+    expect(read.id).toBe(9);
+    expect(read.media).toBe("serie");
+    expect(client.fetchTv).toHaveBeenCalledWith(9);
+    expect(client.searchTv).toHaveBeenCalledWith("Silo");
+    expect(prisma.pelicula.upsert).toHaveBeenCalledWith(
+      expect.objectContaining({
+        create: expect.objectContaining({ id: 1_000_000_009, titulo: "Silo" }),
+      }),
+    );
+  });
+
+  it("refetches a TV show when the cached cast is empty", async () => {
+    prisma.pelicula.findUnique.mockResolvedValue({
+      id: 1_000_000_009,
+      titulo: "Silo",
+      posterUrl: "/s.jpg",
+      detallesExtra: { credits: { cast: [] }, related_search: [], media_type: "serie" },
+    });
+    client.fetchTv.mockResolvedValue({
+      id: 9,
+      name: "Silo",
+      credits: { cast: [] },
+      aggregate_credits: {
+        cast: [{ id: 1, name: "Rebecca", profile_path: "/r.jpg", roles: [{ character: "Juliette" }] }],
+      },
+    });
+    prisma.pelicula.upsert.mockResolvedValue({
+      id: 1_000_000_009,
+      titulo: "Silo",
+      posterUrl: "/s.jpg",
+      detallesExtra: { credits: { cast: [{ name: "Rebecca", character: "Juliette" }] } },
+    });
+    await service.getOrImport(9, TV);
+    expect(client.fetchTv).toHaveBeenCalledWith(9);
+    const saved = prisma.pelicula.upsert.mock.calls[0][0];
+    expect(saved.update.detallesExtra.credits.cast[0]).toEqual(
+      expect.objectContaining({ name: "Rebecca", character: "Juliette" }),
+    );
   });
 
   it("persists a TMDB payload with a fallback title", async () => {

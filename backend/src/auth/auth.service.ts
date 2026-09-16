@@ -71,15 +71,20 @@ export class AuthService {
       include: { pelicula: true },
       orderBy: { createdAt: "desc" },
     });
-    return reviews.map((review) => ({
-      id: review.id,
-      rating: review.rating,
-      comment: review.comment,
-      created_at: review.createdAt,
-      pelicula_id: review.peliculaId,
-      titulo: review.pelicula.titulo,
-      poster_url: review.pelicula.posterUrl,
-    }));
+    return reviews.flatMap((review) => {
+      if (!review.pelicula) return [];
+      return [
+        {
+          id: review.id,
+          rating: review.rating,
+          comment: review.comment,
+          created_at: review.createdAt,
+          pelicula_id: review.peliculaId,
+          titulo: review.pelicula.titulo,
+          poster_url: review.pelicula.posterUrl,
+        },
+      ];
+    });
   }
 
   private issueToken(user: User) {

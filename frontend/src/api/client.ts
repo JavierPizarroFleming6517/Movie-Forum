@@ -46,11 +46,13 @@ export const api = {
   catalog: (orden: "comentadas" | "valoradas" = "comentadas") =>
     request<any[]>(`/api/v1/catalog?orden=${orden}`),
   movie: (id: number) => request<any>(`/api/peliculas/${id}`),
+  show: (id: number) => request<any>(`/api/series/${id}`),
   trailer: (id: number, media: "pelicula" | "serie" = "pelicula") =>
     request<any>(`/api/${media === "serie" ? "series" : "peliculas"}/${id}/trailer`),
-  reviews: (id: number) => request<any[]>(`/api/v1/catalog/${id}/reviews`),
-  upsertReview: (id: number, rating: number, comment: string) =>
-    request<any>(`/api/v1/catalog/${id}/reviews`, {
+  reviews: (id: number, media: "pelicula" | "serie" = "pelicula") =>
+    request<any[]>(`/api/v1/catalog/${id}/reviews${media === "serie" ? "?media=serie" : ""}`),
+  upsertReview: (id: number, rating: number, comment: string, media: "pelicula" | "serie" = "pelicula") =>
+    request<any>(`/api/v1/catalog/${id}/reviews${media === "serie" ? "?media=serie" : ""}`, {
       method: "POST",
       body: JSON.stringify({ rating, comment }),
     }),

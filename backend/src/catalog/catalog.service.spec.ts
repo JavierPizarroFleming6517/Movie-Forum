@@ -92,6 +92,21 @@ describe("CatalogService", () => {
     );
   });
 
+  it("looks up series reviews with the TV storage id", async () => {
+    prisma.pelicula.findUnique.mockResolvedValue({
+      id: 1_000_000_009,
+      titulo: "Silo",
+      posterUrl: "/s.jpg",
+      detallesExtra: { media_type: "serie" },
+    });
+    prisma.review.findMany.mockResolvedValue([]);
+    await service.listReviews(9, "serie");
+    expect(prisma.pelicula.findUnique).toHaveBeenCalledWith({ where: { id: 1_000_000_009 } });
+    expect(prisma.review.findMany).toHaveBeenCalledWith(
+      expect.objectContaining({ where: { peliculaId: 1_000_000_009 } }),
+    );
+  });
+
   it("returns no reviews when the movie is not in the database", async () => {
     prisma.pelicula.findUnique.mockResolvedValue(null);
     await expect(service.listReviews(99)).resolves.toEqual([]);

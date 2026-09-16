@@ -29,12 +29,12 @@ describe("CatalogController", () => {
 
   it("lists reviews", async () => {
     await controller.reviews(111);
-    expect(catalog.listReviews).toHaveBeenCalledWith(111);
+    expect(catalog.listReviews).toHaveBeenCalledWith(111, undefined);
   });
 
   it("upserts a review", async () => {
     const payload = { rating: 8, comment: "ok" };
     await expect(controller.upsert(111, payload, { user })).resolves.toEqual({ id: 1 });
-    expect(catalog.upsertReview).toHaveBeenCalledWith(111, user, payload);
+    expect(catalog.upsertReview).toHaveBeenCalledWith(111, user, payload, undefined);
   });
 });

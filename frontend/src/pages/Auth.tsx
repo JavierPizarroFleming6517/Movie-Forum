@@ -25,6 +25,7 @@ export function AuthPage() {
       return;
     }
     let cancelled = false;
+    setError("");
     setLoading(true);
     Promise.all([api.me(), api.myReviews()])
       .then(([me, mine]) => {
@@ -32,10 +33,15 @@ export function AuthPage() {
         setProfile(me);
         setReviews(mine);
       })
-      .catch(() => {
+      .catch((err) => {
         if (cancelled) return;
-        setProfile({ username: session.username, id: session.id });
+        if (err instanceof ApiError && err.status === 401) {
+          clear();
+          return;
+        }
+        setProfile({ username: session.username, id: session.id, email: undefined, created_at: undefined });
         setReviews([]);
+        setError("No se pudieron cargar las reseñas. Prueba a entrar de nuevo.");
       })
       .finally(() => {
         if (!cancelled) setLoading(false);
@@ -93,6 +99,8 @@ export function AuthPage() {
           <Stat label="Miembro desde" value={formatJoined(profile?.created_at)} />
         </div>
 
+        {error && <p className="mb-6 text-[#ff8a80]">{error}</p>}
+
         {(profile?.is_admin || session.isAdmin) && (
           <p className="mb-8 text-sm text-muted">
             Puedes ver la actividad del foro en{" "}
@@ -144,9 +152,9 @@ export function AuthPage() {
   }
 
   return (
-    <div className="flex min-h-0 flex-1 items-center justify-center p-4">
-      <form className="grid w-full max-w-[420px] gap-3.5" onSubmit={submit}>
-        <h1 className="m-0 text-4xl">{mode === "login" ? "Acceder" : "Registrarse"}</h1>
+    <div className="flex flex-1 items-center justify-center px-4 py-10">
+      <form className="grid w-full max-w-[400px] gap-3.5" onSubmit={submit}>
+        <h1 className="m-0 text-center text-4xl">{mode === "login" ? "Acceder" : "Registrarse"}</h1>
         {mode === "register" && (
           <input className={fieldClass} placeholder="Email" value={email} onChange={(e) => setEmail(e.target.value)} />
         )}
@@ -158,13 +166,13 @@ export function AuthPage() {
           value={password}
           onChange={(e) => setPassword(e.target.value)}
         />
-        <button className={primaryBtnClass} type="submit">
+        <button className={`${primaryBtnClass} w-full`} type="submit">
           {mode === "login" ? "Acceder" : "Crear cuenta"}
         </button>
-        {error && <p className="text-[#ff8a80]">{error}</p>}
+        {error && <p className="text-center text-[#ff8a80]">{error}</p>}
         <button
           type="button"
-          className={ghostBtnClass}
+          className={`${ghostBtnClass} justify-center`}
           onClick={() => setMode(mode === "login" ? "register" : "login")}
         >
           {mode === "login" ? "¿Nuevo? Registrarse" : "¿Ya tienes cuenta? Acceder"}
