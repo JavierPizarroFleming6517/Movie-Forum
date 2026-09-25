@@ -125,6 +125,7 @@ describe("AuthService", () => {
         comment: "Buena",
         created_at: new Date("2026-02-01"),
         pelicula_id: 550,
+        media: "pelicula",
         titulo: "El club de la lucha",
         poster_url: "/p.jpg",
       },

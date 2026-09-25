@@ -10,6 +10,10 @@ function itemId(tmdbId: number, media?: string) {
   return storageId(tmdbId, media === "serie" || media === TV ? TV : undefined);
 }
 
+function canModerate(user: User, ownerId: number) {
+  return user.id === ownerId || user.role === "admin";
+}
+
 export class ReviewDto {
   @Type(() => Number)
   @IsInt()
@@ -22,6 +26,31 @@ export class ReviewDto {
   @MaxLength(2000)
   comment!: string;
 }
+
+export class ReplyDto {
+  @IsString()
+  @MinLength(1)
+  @MaxLength(2000)
+  comment!: string;
+}
+
+type ReplyRow = {
+  id: number;
+  userId: number;
+  comment: string;
+  createdAt: Date;
+  user: { username: string };
+};
+
+type ReviewRow = {
+  id: number;
+  userId: number;
+  rating: number;
+  comment: string;
+  createdAt: Date;
+  user: { username: string };
+  replies?: ReplyRow[];
+};
 
 @Injectable()
 export class CatalogService {
@@ -82,18 +111,10 @@ export class CatalogService {
     if (!pelicula) return [];
     const reviews = await this.prisma.review.findMany({
       where: { peliculaId: id },
-      include: { user: true },
+      include: { user: true, replies: { include: { user: true }, orderBy: { createdAt: "asc" } } },
       orderBy: { createdAt: "desc" },
     });
-    return reviews.map((review) => ({
-      id: review.id,
-      user_id: review.userId,
-      username: review.user.username,
-      pelicula_id: peliculaId,
-      rating: review.rating,
-      comment: review.comment,
-      created_at: review.createdAt,
-    }));
+    return reviews.map((review) => this.toReviewRead(review, peliculaId));
   }
 
   async upsertReview(peliculaId: number, user: User, payload: ReviewDto, media?: string) {
@@ -104,8 +125,50 @@ export class CatalogService {
       where: { userId_peliculaId: { userId: user.id, peliculaId: id } },
       create: { userId: user.id, peliculaId: id, rating: payload.rating, comment: payload.comment },
       update: { rating: payload.rating, comment: payload.comment },
+      include: { user: true, replies: { include: { user: true }, orderBy: { createdAt: "asc" } } },
+    });
+    return this.toReviewRead(review, peliculaId);
+  }
+
+  async deleteReview(peliculaId: number, user: User, media?: string) {
+    const id = itemId(peliculaId, media);
+    const review = await this.prisma.review.findUnique({
+      where: { userId_peliculaId: { userId: user.id, peliculaId: id } },
+    });
+    if (!review) throw new HttpException("Reseña no encontrada", HttpStatus.NOT_FOUND);
+    await this.prisma.review.delete({ where: { id: review.id } });
+  }
+
+  async addReply(reviewId: number, user: User, payload: ReplyDto) {
+    const review = await this.prisma.review.findUnique({ where: { id: reviewId } });
+    if (!review) throw new HttpException("Reseña no encontrada", HttpStatus.NOT_FOUND);
+    const reply = await this.prisma.reviewReply.create({
+      data: { reviewId, userId: user.id, comment: payload.comment },
       include: { user: true },
     });
+    return this.toReplyRead(reply);
+  }
+
+  async updateReply(replyId: number, user: User, payload: ReplyDto) {
+    const reply = await this.prisma.reviewReply.findUnique({ where: { id: replyId } });
+    if (!reply) throw new HttpException("Respuesta no encontrada", HttpStatus.NOT_FOUND);
+    if (!canModerate(user, reply.userId)) throw new HttpException("No puedes editar esta respuesta", HttpStatus.FORBIDDEN);
+    const updated = await this.prisma.reviewReply.update({
+      where: { id: replyId },
+      data: { comment: payload.comment },
+      include: { user: true },
+    });
+    return this.toReplyRead(updated);
+  }
+
+  async deleteReply(replyId: number, user: User) {
+    const reply = await this.prisma.reviewReply.findUnique({ where: { id: replyId } });
+    if (!reply) throw new HttpException("Respuesta no encontrada", HttpStatus.NOT_FOUND);
+    if (!canModerate(user, reply.userId)) throw new HttpException("No puedes borrar esta respuesta", HttpStatus.FORBIDDEN);
+    await this.prisma.reviewReply.delete({ where: { id: replyId } });
+  }
+
+  private toReviewRead(review: ReviewRow, peliculaId: number) {
     return {
       id: review.id,
       user_id: review.userId,
@@ -114,6 +177,17 @@ export class CatalogService {
       rating: review.rating,
       comment: review.comment,
       created_at: review.createdAt,
+      replies: (review.replies || []).map((reply) => this.toReplyRead(reply)),
+    };
+  }
+
+  private toReplyRead(reply: ReplyRow) {
+    return {
+      id: reply.id,
+      user_id: reply.userId,
+      username: reply.user.username,
+      comment: reply.comment,
+      created_at: reply.createdAt,
     };
   }
 }

@@ -56,6 +56,19 @@ export const api = {
       method: "POST",
       body: JSON.stringify({ rating, comment }),
     }),
+  deleteReview: (id: number, media: "pelicula" | "serie" = "pelicula") =>
+    request<void>(`/api/v1/catalog/${id}/reviews${media === "serie" ? "?media=serie" : ""}`, { method: "DELETE" }),
+  addReply: (reviewId: number, comment: string) =>
+    request<any>(`/api/v1/catalog/thread/${reviewId}/replies`, {
+      method: "POST",
+      body: JSON.stringify({ comment }),
+    }),
+  updateReply: (replyId: number, comment: string) =>
+    request<any>(`/api/v1/catalog/thread/replies/${replyId}`, {
+      method: "PATCH",
+      body: JSON.stringify({ comment }),
+    }),
+  deleteReply: (replyId: number) => request<void>(`/api/v1/catalog/thread/replies/${replyId}`, { method: "DELETE" }),
   login: (username: string, password: string) =>
     request<any>("/api/v1/auth/login", { method: "POST", body: JSON.stringify({ username, password }) }),
   register: (email: string, username: string, password: string) =>

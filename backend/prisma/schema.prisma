@@ -22,6 +22,7 @@ model User {
   role           UserRole @default(user)
   createdAt      DateTime @default(now()) @map("created_at") @db.Timestamptz(6)
   reviews        Review[]
+  replies        ReviewReply[]
 
   @@map("users")
 }
@@ -44,11 +45,26 @@ model Review {
   rating     Int
   comment    String
   createdAt  DateTime @default(now()) @map("created_at") @db.Timestamptz(6)
-  user       User     @relation(fields: [userId], references: [id])
-  pelicula   Pelicula @relation(fields: [peliculaId], references: [id])
+  user       User          @relation(fields: [userId], references: [id])
+  pelicula   Pelicula      @relation(fields: [peliculaId], references: [id])
+  replies    ReviewReply[]
 
   @@unique([userId, peliculaId], map: "uq_review_user_item")
   @@index([userId], map: "ix_reviews_user_id")
   @@index([peliculaId], map: "ix_reviews_pelicula_id")
   @@map("reviews")
+}
+
+model ReviewReply {
+  id        Int      @id @default(autoincrement())
+  reviewId  Int      @map("review_id")
+  userId    Int      @map("user_id")
+  comment   String
+  createdAt DateTime @default(now()) @map("created_at") @db.Timestamptz(6)
+  review    Review   @relation(fields: [reviewId], references: [id], onDelete: Cascade)
+  user      User     @relation(fields: [userId], references: [id])
+
+  @@index([reviewId], map: "ix_review_replies_review_id")
+  @@index([userId], map: "ix_review_replies_user_id")
+  @@map("review_replies")
 }

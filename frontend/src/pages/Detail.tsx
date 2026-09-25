@@ -5,7 +5,8 @@ import { useAuth } from "../auth/AuthContext";
 import { HorizontalScroller } from "../components/HorizontalScroller";
 import { LoadingScreen } from "../components/LoadingScreen";
 import { forumStars, StarRating } from "../components/StarRating";
-import { fieldClass, hoverLiftClass, metaClass, pageClass, playBtnClass, sectionTitleClass, titleHref } from "../ui";
+import { ReviewThread } from "../components/ReviewThread";
+import { fieldClass, ghostBtnClass, hoverLiftClass, metaClass, pageClass, playBtnClass, sectionTitleClass, titleHref } from "../ui";
 import { rememberRecent } from "../recent";
 
 const STATUS_ES: Record<string, string> = {
@@ -47,6 +48,8 @@ export function DetailPage() {
   const [rating, setRating] = useState(0);
   const [comment, setComment] = useState("");
   const [formStatus, setFormStatus] = useState("");
+  const [editing, setEditing] = useState(false);
+  const [visibleCount, setVisibleCount] = useState(10);
 
   useEffect(() => {
     let cancelled = false;
@@ -54,6 +57,8 @@ export function DetailPage() {
     setItem(null);
     setReviews([]);
     setFormStatus("");
+    setEditing(false);
+    setVisibleCount(10);
     setRating(0);
 
     async function loadMovie() {
@@ -88,6 +93,24 @@ export function DetailPage() {
     });
   }, [item, movieId, media]);
 
+  const mine = session ? reviews.find((review) => review.user_id === session.id) : null;
+  const orderedReviews = mine ? [mine, ...reviews.filter((review) => review.id !== mine.id)] : reviews;
+  const visibleReviews = orderedReviews.slice(0, visibleCount);
+
+  useEffect(() => {
+    if (mine) {
+      setRating(forumStars(mine.rating));
+      setComment(mine.comment);
+      return;
+    }
+    setRating(0);
+    setComment("");
+  }, [mine?.id, mine?.comment, mine?.rating]);
+
+  async function reloadReviews() {
+    setReviews(await api.reviews(movieId, media));
+  }
+
   async function openTrailer() {
     try {
       const data = await api.trailer(movieId, media);
@@ -113,16 +136,28 @@ export function DetailPage() {
     }
     try {
       await api.upsertReview(movieId, rating, comment.trim(), media);
-      setFormStatus("Reseña guardada");
-      setComment("");
-      setRating(0);
+      setFormStatus(mine ? "Reseña editada" : "Reseña publicada");
+      setEditing(false);
       try {
-        setReviews(await api.reviews(movieId, media));
+        await reloadReviews();
       } catch {
         /* la ficha ya está visible */
       }
     } catch (err) {
       setFormStatus(err instanceof ApiError ? err.message : "No se pudo guardar");
+    }
+  }
+
+  async function removeMine() {
+    if (!session || !mine) return;
+    if (!window.confirm("¿Borrar tu reseña y las respuestas del hilo?")) return;
+    try {
+      await api.deleteReview(movieId, media);
+      setFormStatus("Reseña eliminada");
+      setEditing(false);
+      await reloadReviews();
+    } catch (err) {
+      setFormStatus(err instanceof ApiError ? err.message : "No se pudo borrar");
     }
   }
 
@@ -221,53 +256,127 @@ export function DetailPage() {
             </section>
           )}
           <h2 className={sectionTitleClass}>{reviews.length ? `Reseñas ${reviews.length}` : "Reseñas"}</h2>
-          {reviews.length === 0 && <p className="mx-2 mb-6 text-[13px] text-muted">Todavía no hay reseñas. Sé el primero en opinar.</p>}
-          {reviews.map((review) => (
-            <article className="mb-3 rounded-lg bg-surface p-4" key={review.id}>
+          {reviews.length === 0 && !session && <p className="mx-2 mb-6 text-[13px] text-muted">Todavía no hay reseñas. Sé el primero en opinar.</p>}
+          {!mine && (
+            <form className="mb-4 grid max-w-[520px] gap-2.5 rounded-lg border border-accent-text/40 bg-surface p-4" onSubmit={submit}>
+              <h3 className="text-lg font-semibold">Tu reseña</h3>
+              {session ? (
+                <>
+                  <div>
+                    {rating > 0 && <p className="mb-1.5 text-sm text-muted">{rating} de 5 estrellas</p>}
+                    <StarRating value={rating} onChange={setRating} />
+                  </div>
+                  <textarea
+                    className={fieldClass}
+                    rows={4}
+                    value={comment}
+                    onChange={(e) => setComment(e.target.value)}
+                    placeholder="Escribe tu opinión"
+                  />
+                  <button className={playBtnClass} type="submit">
+                    Publicar reseña
+                  </button>
+                </>
+              ) : (
+                <p className="text-[13px] text-muted">
+                  Inicia sesión en <Link to="/cuenta">Cuenta</Link> para calificar y comentar.
+                </p>
+              )}
+              {formStatus && <p>{formStatus}</p>}
+            </form>
+          )}
+          {visibleReviews.map((review) => {
+            const isMine = session?.id === review.user_id;
+            return (
+            <article
+              className={`mb-3 rounded-lg p-4 ${isMine ? "border border-accent-text/50 bg-surface" : "bg-surface"}`}
+              key={review.id}
+            >
               <div className="mb-2.5 flex items-center gap-3">
                 <div className="flex h-10 w-10 items-center justify-center rounded-full bg-accent font-bold">
                   {(review.username || "U").slice(0, 1).toUpperCase()}
                 </div>
                 <div>
-                  <strong>{review.username}</strong>
+                  <strong>{isMine ? "Tu reseña" : review.username}</strong>
                   <div className={metaClass}>
                     Escrito por {review.username}
                     {review.created_at ? ` el ${formatDate(String(review.created_at))}` : ""}
                   </div>
                 </div>
                 <span className="ml-auto">
-                  <StarRating value={forumStars(review.rating)} readOnly size={18} />
+                  <StarRating value={forumStars(isMine && editing ? rating : review.rating)} readOnly={!isMine || !editing} size={18} onChange={isMine && editing ? setRating : undefined} />
                 </span>
               </div>
-              <p>{review.comment}</p>
+              {isMine && editing ? (
+                <form className="grid gap-2.5" onSubmit={submit}>
+                  <textarea
+                    className={fieldClass}
+                    rows={4}
+                    value={comment}
+                    onChange={(e) => setComment(e.target.value)}
+                  />
+                  <div className="flex flex-wrap gap-2">
+                    <button className={playBtnClass} type="submit">
+                      Confirmar
+                    </button>
+                    <button
+                      className={ghostBtnClass}
+                      type="button"
+                      onClick={() => {
+                        setRating(forumStars(review.rating));
+                        setComment(review.comment);
+                        setEditing(false);
+                        setFormStatus("");
+                      }}
+                    >
+                      Cancelar
+                    </button>
+                  </div>
+                  {formStatus && <p>{formStatus}</p>}
+                </form>
+              ) : (
+                <>
+                  <p>{review.comment}</p>
+                  {isMine && (
+                    <div className="mt-3 flex flex-wrap gap-2">
+                      <button
+                        className={playBtnClass}
+                        type="button"
+                        onClick={() => {
+                          setRating(forumStars(review.rating));
+                          setComment(review.comment);
+                          setFormStatus("");
+                          setEditing(true);
+                        }}
+                      >
+                        Editar reseña
+                      </button>
+                      <button className={ghostBtnClass} type="button" onClick={() => removeMine()}>
+                        Borrar reseña
+                      </button>
+                    </div>
+                  )}
+                  {isMine && formStatus && <p className="mt-2">{formStatus}</p>}
+                </>
+              )}
+              <ReviewThread
+                review={review}
+                sessionId={session?.id}
+                isAdmin={session?.isAdmin}
+                onChanged={reloadReviews}
+              />
             </article>
-          ))}
-          <form className="mt-4 grid max-w-[520px] gap-2.5" onSubmit={submit}>
-            <h3 className="text-lg font-semibold">Tu reseña</h3>
-            {session ? (
-              <>
-                <div>
-                  {rating > 0 && <p className="mb-1.5 text-sm text-muted">{rating} de 5 estrellas</p>}
-                  <StarRating value={rating} onChange={setRating} />
-                </div>
-                <textarea
-                  className={fieldClass}
-                  rows={4}
-                  value={comment}
-                  onChange={(e) => setComment(e.target.value)}
-                  placeholder="Escribe tu opinión"
-                />
-                <button className={playBtnClass} type="submit">
-                  Publicar reseña
-                </button>
-              </>
-            ) : (
-              <p className="text-[13px] text-muted">
-                Inicia sesión en <Link to="/cuenta">Cuenta</Link> para calificar y comentar.
-              </p>
-            )}
-            {formStatus && <p>{formStatus}</p>}
-          </form>
+            );
+          })}
+          {visibleCount < orderedReviews.length && (
+            <button
+              className={`${ghostBtnClass} mb-4`}
+              type="button"
+              onClick={() => setVisibleCount((count) => count + 10)}
+            >
+              Mostrar más ({orderedReviews.length - visibleCount} restantes)
+            </button>
+          )}
           {recs.length > 0 && (
             <section>
               <h2 className={sectionTitleClass}>Si te gustó {item.titulo}, también te puede gustar</h2>

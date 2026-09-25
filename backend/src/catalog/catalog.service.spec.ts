@@ -19,7 +19,8 @@ const alien = { id: 222, titulo: "Alien", posterUrl: "/a.jpg", detallesExtra: {}
 
 describe("CatalogService", () => {
   let prisma: {
-    review: { groupBy: jest.Mock; findMany: jest.Mock; upsert: jest.Mock };
+    review: { groupBy: jest.Mock; findMany: jest.Mock; upsert: jest.Mock; findUnique: jest.Mock; delete: jest.Mock };
+    reviewReply: { create: jest.Mock; findUnique: jest.Mock; update: jest.Mock; delete: jest.Mock };
     pelicula: { findMany: jest.Mock; findUnique: jest.Mock };
   };
   let tmdb: { toRead: jest.Mock };
@@ -27,7 +28,8 @@ describe("CatalogService", () => {
 
   beforeEach(() => {
     prisma = {
-      review: { groupBy: jest.fn(), findMany: jest.fn(), upsert: jest.fn() },
+      review: { groupBy: jest.fn(), findMany: jest.fn(), upsert: jest.fn(), findUnique: jest.fn(), delete: jest.fn() },
+      reviewReply: { create: jest.fn(), findUnique: jest.fn(), update: jest.fn(), delete: jest.fn() },
       pelicula: { findMany: jest.fn(), findUnique: jest.fn() },
     };
     tmdb = {
@@ -123,6 +125,7 @@ describe("CatalogService", () => {
         comment: "Buena",
         createdAt: new Date("2026-02-01"),
         user: { username: "ana" },
+        replies: [],
       },
     ]);
     await expect(service.listReviews(111)).resolves.toEqual([
@@ -134,6 +137,7 @@ describe("CatalogService", () => {
         rating: 8,
         comment: "Buena",
         created_at: new Date("2026-02-01"),
+        replies: [],
       },
     ]);
   });
@@ -158,9 +162,82 @@ describe("CatalogService", () => {
       comment: "Excelente",
       createdAt: new Date("2026-03-01"),
       user: { username: "ana" },
+      replies: [],
     });
     const saved = await service.upsertReview(111, user, { rating: 9, comment: "Excelente" });
     expect(saved.rating).toBe(9);
     expect(saved.username).toBe("ana");
+    expect(saved.replies).toEqual([]);
+  });
+
+  it("deletes the current user's review", async () => {
+    prisma.review.findUnique.mockResolvedValue({ id: 4, userId: 1, peliculaId: 111 });
+    prisma.review.delete.mockResolvedValue({ id: 4 });
+    await service.deleteReview(111, user);
+    expect(prisma.review.delete).toHaveBeenCalledWith({ where: { id: 4 } });
+  });
+
+  it("rejects deleting a missing review", async () => {
+    prisma.review.findUnique.mockResolvedValue(null);
+    await expect(service.deleteReview(111, user)).rejects.toMatchObject({ status: HttpStatus.NOT_FOUND });
+  });
+
+  it("adds a reply to a review thread", async () => {
+    prisma.review.findUnique.mockResolvedValue({ id: 4 });
+    prisma.reviewReply.create.mockResolvedValue({
+      id: 2,
+      userId: 1,
+      comment: "De acuerdo",
+      createdAt: new Date("2026-04-01"),
+      user: { username: "ana" },
+    });
+    await expect(service.addReply(4, user, { comment: "De acuerdo" })).resolves.toMatchObject({
+      id: 2,
+      username: "ana",
+      comment: "De acuerdo",
+    });
+  });
+
+  it("rejects a reply to a missing review", async () => {
+    prisma.review.findUnique.mockResolvedValue(null);
+    await expect(service.addReply(99, user, { comment: "x" })).rejects.toMatchObject({ status: HttpStatus.NOT_FOUND });
+  });
+
+  it("updates an owned reply", async () => {
+    prisma.reviewReply.findUnique.mockResolvedValue({ id: 2, userId: 1 });
+    prisma.reviewReply.update.mockResolvedValue({
+      id: 2,
+      userId: 1,
+      comment: "Editado",
+      createdAt: new Date("2026-04-01"),
+      user: { username: "ana" },
+    });
+    await expect(service.updateReply(2, user, { comment: "Editado" })).resolves.toMatchObject({ comment: "Editado" });
+  });
+
+  it("forbids editing someone else's reply", async () => {
+    prisma.reviewReply.findUnique.mockResolvedValue({ id: 2, userId: 9 });
+    await expect(service.updateReply(2, user, { comment: "x" })).rejects.toMatchObject({ status: HttpStatus.FORBIDDEN });
+  });
+
+  it("lets an admin edit any reply", async () => {
+    prisma.reviewReply.findUnique.mockResolvedValue({ id: 2, userId: 9 });
+    prisma.reviewReply.update.mockResolvedValue({
+      id: 2,
+      userId: 9,
+      comment: "Moderado",
+      createdAt: new Date("2026-04-01"),
+      user: { username: "otro" },
+    });
+    await expect(service.updateReply(2, { ...user, role: "admin" }, { comment: "Moderado" })).resolves.toMatchObject({
+      comment: "Moderado",
+    });
+  });
+
+  it("deletes an owned reply", async () => {
+    prisma.reviewReply.findUnique.mockResolvedValue({ id: 2, userId: 1 });
+    prisma.reviewReply.delete.mockResolvedValue({ id: 2 });
+    await service.deleteReply(2, user);
+    expect(prisma.reviewReply.delete).toHaveBeenCalledWith({ where: { id: 2 } });
   });
 });

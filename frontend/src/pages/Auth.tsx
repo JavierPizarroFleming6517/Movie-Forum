@@ -4,7 +4,7 @@ import { api, ApiError } from "../api/client";
 import { useAuth } from "../auth/AuthContext";
 import { LoadingScreen } from "../components/LoadingScreen";
 import { forumStars, StarRating } from "../components/StarRating";
-import { fieldClass, ghostBtnClass, metaClass, pageClass, primaryBtnClass } from "../ui";
+import { fieldClass, ghostBtnClass, metaClass, pageClass, primaryBtnClass, titleHref } from "../ui";
 
 export function AuthPage() {
   const { session, setSession, clear } = useAuth();
@@ -140,27 +140,46 @@ export function AuthPage() {
         ) : (
           <div className="grid gap-3">
             {reviews.map((review) => (
-              <Link
-                key={review.id}
-                className="flex gap-3 rounded-lg bg-surface p-3 text-white hover:bg-surface-alt"
-                to={`/pelicula/${review.pelicula_id}`}
-              >
-                {review.poster_url ? (
-                  <img className="h-[90px] w-[60px] shrink-0 rounded object-cover" src={review.poster_url} alt="" />
-                ) : (
-                  <div className="flex h-[90px] w-[60px] shrink-0 items-center justify-center rounded bg-header">🎬</div>
-                )}
-                <div className="min-w-0 flex-1">
-                  <div className="mb-1 flex flex-wrap items-center justify-between gap-2">
-                    <strong>{review.titulo}</strong>
-                    <StarRating value={forumStars(review.rating)} readOnly size={16} />
-                  </div>
-                  <p className="m-0 line-clamp-2 text-sm text-muted">{review.comment}</p>
-                  {review.created_at && (
-                    <p className={`${metaClass} mt-1`}>{formatJoined(review.created_at)}</p>
+              <div key={review.id} className="flex gap-3 rounded-lg bg-surface p-3">
+                <Link
+                  className="flex min-w-0 flex-1 gap-3 text-white hover:text-accent-text"
+                  to={titleHref(review.pelicula_id, review.media === "serie" ? "serie" : "pelicula")}
+                >
+                  {review.poster_url ? (
+                    <img className="h-[90px] w-[60px] shrink-0 rounded object-cover" src={review.poster_url} alt="" />
+                  ) : (
+                    <div className="flex h-[90px] w-[60px] shrink-0 items-center justify-center rounded bg-header">🎬</div>
                   )}
-                </div>
-              </Link>
+                  <div className="min-w-0 flex-1">
+                    <div className="mb-1 flex flex-wrap items-center justify-between gap-2">
+                      <strong>{review.titulo}</strong>
+                      <StarRating value={forumStars(review.rating)} readOnly size={16} />
+                    </div>
+                    <p className="m-0 line-clamp-2 text-sm text-muted">{review.comment}</p>
+                    {review.created_at && (
+                      <p className={`${metaClass} mt-1`}>{formatJoined(review.created_at)}</p>
+                    )}
+                  </div>
+                </Link>
+                <button
+                  type="button"
+                  className={`${ghostBtnClass} self-start`}
+                  onClick={async () => {
+                    if (!window.confirm("¿Borrar esta reseña y sus respuestas?")) return;
+                    try {
+                      await api.deleteReview(
+                        review.pelicula_id,
+                        review.media === "serie" ? "serie" : "pelicula",
+                      );
+                      setReviews((current) => current.filter((item) => item.id !== review.id));
+                    } catch (err) {
+                      setError(err instanceof ApiError ? err.message : "No se pudo borrar");
+                    }
+                  }}
+                >
+                  Borrar
+                </button>
+              </div>
             ))}
           </div>
         )}

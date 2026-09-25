@@ -9,6 +9,7 @@ import * as bcrypt from "bcrypt";
 import { PrismaService } from "../prisma/prisma.service";
 import { LoginDto, RegisterDto } from "./auth.dto";
 import { User } from "@prisma/client";
+import { publicId, TV, TV_STORAGE_OFFSET } from "../tmdb/tmdb.client";
 
 @Injectable()
 export class AuthService {
@@ -79,7 +80,8 @@ export class AuthService {
           rating: review.rating,
           comment: review.comment,
           created_at: review.createdAt,
-          pelicula_id: review.peliculaId,
+          pelicula_id: publicId(review.peliculaId),
+          media: review.peliculaId >= TV_STORAGE_OFFSET ? TV : "pelicula",
           titulo: review.pelicula.titulo,
           poster_url: review.pelicula.posterUrl,
         },
