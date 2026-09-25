@@ -1,16 +1,16 @@
 @import "tailwindcss";
 
 @theme {
-  --color-bg: #000000;
+  --color-bg: #121418;
   --color-header: #1a2332;
-  --color-surface: #1a1a1a;
-  --color-surface-alt: #242424;
+  --color-surface: #262b33;
+  --color-surface-alt: #313744;
   --color-accent: #163a6b;
   --color-accent-hover: #1e4b8a;
   --color-accent-text: #6ba3d6;
-  --color-muted: #b3b3b3;
+  --color-muted: #c5c9d0;
   --color-footer: #032541;
-  --color-divider: #3a4a5c;
+  --color-divider: #454c58;
   --color-arrow: #1a2332cc;
   --font-sans: "Segoe UI", system-ui, sans-serif;
 }

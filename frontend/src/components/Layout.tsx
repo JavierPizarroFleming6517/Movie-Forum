@@ -69,7 +69,7 @@ export function Layout() {
     else navigate("/inicio");
   }
 
-  const hideFooter = location.pathname === "/cuenta" && !session;
+  const loginWall = location.pathname === "/cuenta" && !session;
 
   return (
     <div className="relative flex min-h-screen max-w-full flex-col overflow-x-hidden">
@@ -127,9 +127,14 @@ export function Layout() {
           document.body,
         )}
       <Sidebar menu={menu} open={menuOpen} onClose={() => setMenuOpen(false)} />
-      <div className={cn(shellClass, "relative flex min-h-0 min-w-0 flex-1 flex-col")}>
+      <div
+        className={cn(
+          "relative flex min-h-0 min-w-0 flex-1 flex-col",
+          loginWall ? "w-full" : shellClass,
+        )}
+      >
         <Outlet />
-        {!hideFooter && <Footer />}
+        {!loginWall && <Footer />}
       </div>
     </div>
   );

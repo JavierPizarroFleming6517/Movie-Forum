@@ -157,7 +157,7 @@ export function DetailPage() {
   return (
     <div className={pageClass}>
       <section
-        className="overflow-hidden rounded-lg bg-[#0d0d0d] bg-cover bg-center p-6"
+        className="overflow-hidden rounded-lg bg-bg bg-cover bg-center p-6"
         style={backdrop ? { backgroundImage: `linear-gradient(rgba(0,0,0,.55), rgba(0,0,0,.78)), url(${backdrop})` } : undefined}
       >
         <Link className="text-sm text-white" to="/inicio">

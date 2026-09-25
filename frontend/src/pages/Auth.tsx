@@ -16,6 +16,7 @@ export function AuthPage() {
   const [profile, setProfile] = useState<any>(null);
   const [reviews, setReviews] = useState<any[]>([]);
   const [loading, setLoading] = useState(Boolean(session));
+  const [posters, setPosters] = useState<string[]>([]);
 
   useEffect(() => {
     if (!session) {
@@ -45,6 +46,22 @@ export function AuthPage() {
       })
       .finally(() => {
         if (!cancelled) setLoading(false);
+      });
+    return () => {
+      cancelled = true;
+    };
+  }, [session]);
+
+  useEffect(() => {
+    if (session) return;
+    let cancelled = false;
+    api
+      .home()
+      .then((home) => {
+        if (!cancelled) setPosters(collectPosters(home, 3));
+      })
+      .catch(() => {
+        if (!cancelled) setPosters([]);
       });
     return () => {
       cancelled = true;
@@ -151,34 +168,138 @@ export function AuthPage() {
     );
   }
 
+  const form = (
+    <AuthForm
+      mode={mode}
+      email={email}
+      username={username}
+      password={password}
+      error={error}
+      onEmail={setEmail}
+      onUsername={setUsername}
+      onPassword={setPassword}
+      onMode={() => setMode(mode === "login" ? "register" : "login")}
+      onSubmit={submit}
+    />
+  );
+
   return (
-    <div className="flex flex-1 items-center justify-center px-4 py-10">
-      <form className="grid w-full max-w-[400px] gap-3.5" onSubmit={submit}>
-        <h1 className="m-0 text-center text-4xl">{mode === "login" ? "Acceder" : "Registrarse"}</h1>
-        {mode === "register" && (
-          <input className={fieldClass} placeholder="Email" value={email} onChange={(e) => setEmail(e.target.value)} />
+    <div className="grid min-h-0 flex-1 lg:grid-cols-2">
+      <aside className="relative hidden overflow-hidden bg-[#152033] lg:flex lg:flex-col lg:justify-end lg:p-12">
+        {posters.length > 0 && (
+          <div className="pointer-events-none absolute inset-0 grid grid-cols-3">
+            {posters.map((src) => (
+              <img key={src} className="h-full min-h-0 w-full object-cover" src={src} alt="" />
+            ))}
+          </div>
         )}
-        <input className={fieldClass} placeholder="Usuario" value={username} onChange={(e) => setUsername(e.target.value)} />
+        <div
+          className="pointer-events-none absolute inset-0"
+          style={{
+            background:
+              "linear-gradient(to top, #152033 42%, rgba(21,32,51,0.55) 70%, rgba(21,32,51,0.2) 100%)",
+          }}
+        />
+        <div className="relative z-[1] max-w-[420px]">
+          <p className="mb-3 text-xs font-semibold tracking-[0.22em] text-accent-text">FOROPELIS</p>
+          <h2 className="m-0 text-4xl leading-tight font-semibold">El foro de cine y series</h2>
+          <p className="mt-4 text-sm leading-relaxed text-white/75">
+            Entra para publicar reseñas, seguir tendencias y comentar fichas con la comunidad.
+          </p>
+          <ul className="mt-8 grid list-none gap-3 p-0 text-sm text-white/80">
+            <li>Reseñas en cada película y serie</li>
+            <li>Cartelera, tendencias y lo más comentado</li>
+            <li>Tu actividad queda en tu cuenta</li>
+          </ul>
+        </div>
+      </aside>
+      <div className="grid content-center bg-bg px-6 py-10 sm:px-12">
+        <div className="mx-auto w-full max-w-[400px]">
+          <div className="mb-6 lg:hidden">
+            <p className="mb-2 text-xs font-semibold tracking-[0.22em] text-accent-text">FOROPELIS</p>
+            <p className={metaClass}>Foro de cine y series</p>
+          </div>
+          {form}
+        </div>
+      </div>
+    </div>
+  );
+}
+
+function AuthForm({
+  mode,
+  email,
+  username,
+  password,
+  error,
+  onEmail,
+  onUsername,
+  onPassword,
+  onMode,
+  onSubmit,
+}: {
+  mode: "login" | "register";
+  email: string;
+  username: string;
+  password: string;
+  error: string;
+  onEmail: (value: string) => void;
+  onUsername: (value: string) => void;
+  onPassword: (value: string) => void;
+  onMode: () => void;
+  onSubmit: (event: FormEvent) => void;
+}) {
+  return (
+    <form className="grid gap-4" onSubmit={onSubmit}>
+      <div>
+        <h1 className="m-0 text-3xl">{mode === "login" ? "Acceder" : "Crear cuenta"}</h1>
+        <p className={`${metaClass} mt-2`}>
+          {mode === "login"
+            ? "Entra para publicar reseñas y ver tu actividad."
+            : "Regístrate para comentar películas y series."}
+        </p>
+      </div>
+      {mode === "register" && (
+        <label className="grid gap-1.5 text-sm text-muted">
+          Email
+          <input
+            className={fieldClass}
+            type="email"
+            autoComplete="email"
+            value={email}
+            onChange={(e) => onEmail(e.target.value)}
+          />
+        </label>
+      )}
+      <label className="grid gap-1.5 text-sm text-muted">
+        Usuario
+        <input className={fieldClass} autoComplete="username" value={username} onChange={(e) => onUsername(e.target.value)} />
+      </label>
+      <label className="grid gap-1.5 text-sm text-muted">
+        Contraseña
         <input
           className={fieldClass}
-          placeholder="Contraseña"
           type="password"
+          autoComplete={mode === "login" ? "current-password" : "new-password"}
           value={password}
-          onChange={(e) => setPassword(e.target.value)}
+          onChange={(e) => onPassword(e.target.value)}
         />
-        <button className={`${primaryBtnClass} w-full`} type="submit">
-          {mode === "login" ? "Acceder" : "Crear cuenta"}
-        </button>
-        {error && <p className="text-center text-[#ff8a80]">{error}</p>}
-        <button
-          type="button"
-          className={`${ghostBtnClass} justify-center`}
-          onClick={() => setMode(mode === "login" ? "register" : "login")}
-        >
-          {mode === "login" ? "¿Nuevo? Registrarse" : "¿Ya tienes cuenta? Acceder"}
-        </button>
-      </form>
-    </div>
+      </label>
+      <button className={`${primaryBtnClass} mt-1 w-full`} type="submit">
+        {mode === "login" ? "Acceder" : "Crear cuenta"}
+      </button>
+      {error && <p className="text-sm text-[#ff8a80]">{error}</p>}
+      <button type="button" className={`${ghostBtnClass} justify-center`} onClick={onMode}>
+        {mode === "login" ? "¿Nuevo? Registrarse" : "¿Ya tienes cuenta? Acceder"}
+      </button>
+      <p className={`${metaClass} text-center`}>
+        También puedes{" "}
+        <Link className="text-accent-text" to="/inicio">
+          entrar al foro sin cuenta
+        </Link>
+        .
+      </p>
+    </form>
   );
 }
 
@@ -189,6 +310,18 @@ function Stat({ label, value }: { label: string; value: string }) {
       <b className="mt-1 block text-xl">{value}</b>
     </div>
   );
+}
+
+function collectPosters(home: { rows?: { results?: { poster_url?: string | null }[] }[] }, limit: number) {
+  const urls: string[] = [];
+  for (const row of home.rows || []) {
+    for (const item of row.results || []) {
+      if (!item.poster_url || urls.includes(item.poster_url)) continue;
+      urls.push(item.poster_url);
+      if (urls.length === limit) return urls;
+    }
+  }
+  return urls;
 }
 
 function formatJoined(value?: string) {
