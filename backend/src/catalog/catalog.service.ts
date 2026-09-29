@@ -1,9 +1,10 @@
-import { HttpException, HttpStatus, Injectable } from "@nestjs/common";
+import { ForbiddenException, HttpException, HttpStatus, Injectable } from "@nestjs/common";
 import { IsInt, IsString, Max, MaxLength, Min, MinLength } from "class-validator";
 import { Type } from "class-transformer";
 import { User } from "@prisma/client";
 import { PrismaService } from "../prisma/prisma.service";
 import { TmdbService } from "../tmdb/tmdb.service";
+import { ReportsService } from "../reports/reports.service";
 import { storageId, TV } from "../tmdb/tmdb.client";
 
 function itemId(tmdbId: number, media?: string) {
@@ -57,6 +58,7 @@ export class CatalogService {
   constructor(
     private readonly prisma: PrismaService,
     private readonly tmdb: TmdbService,
+    private readonly reports: ReportsService,
   ) {}
 
   async listCatalog(orden: "comentadas" | "valoradas" = "comentadas") {
@@ -119,6 +121,9 @@ export class CatalogService {
 
   async upsertReview(peliculaId: number, user: User, payload: ReviewDto, media?: string) {
     const id = itemId(peliculaId, media);
+    if (await this.reports.hasActiveBan(user.id)) {
+      throw new ForbiddenException("No puedes crear reseñas: tu cuenta tiene una sanción activa");
+    }
     const pelicula = await this.prisma.pelicula.findUnique({ where: { id } });
     if (!pelicula) throw new HttpException("Película no encontrada", HttpStatus.NOT_FOUND);
     const review = await this.prisma.review.upsert({
@@ -140,6 +145,9 @@ export class CatalogService {
   }
 
   async addReply(reviewId: number, user: User, payload: ReplyDto) {
+    if (await this.reports.hasActiveBan(user.id)) {
+      throw new ForbiddenException("No puedes responder: tu cuenta tiene una sanción activa");
+    }
     const review = await this.prisma.review.findUnique({ where: { id: reviewId } });
     if (!review) throw new HttpException("Reseña no encontrada", HttpStatus.NOT_FOUND);
     const reply = await this.prisma.reviewReply.create({

@@ -3,6 +3,7 @@ import { User } from "@prisma/client";
 import { CatalogService } from "./catalog.service";
 import { PrismaService } from "../prisma/prisma.service";
 import { TmdbService } from "../tmdb/tmdb.service";
+import { ReportsService } from "../reports/reports.service";
 
 const user = {
   id: 1,
@@ -24,6 +25,7 @@ describe("CatalogService", () => {
     pelicula: { findMany: jest.Mock; findUnique: jest.Mock };
   };
   let tmdb: { toRead: jest.Mock };
+  let reports: { hasActiveBan: jest.Mock };
   let service: CatalogService;
 
   beforeEach(() => {
@@ -35,7 +37,14 @@ describe("CatalogService", () => {
     tmdb = {
       toRead: jest.fn((item, count, avg) => ({ id: item.id, titulo: item.titulo, count, avg })),
     };
-    service = new CatalogService(prisma as unknown as PrismaService, tmdb as unknown as TmdbService);
+    reports = {
+      hasActiveBan: jest.fn().mockResolvedValue(false),
+    };
+    service = new CatalogService(
+      prisma as unknown as PrismaService,
+      tmdb as unknown as TmdbService,
+      reports as unknown as ReportsService,
+    );
   });
 
   it("returns an empty catalog when there are no reviews", async () => {
@@ -239,5 +248,21 @@ describe("CatalogService", () => {
     prisma.reviewReply.delete.mockResolvedValue({ id: 2 });
     await service.deleteReply(2, user);
     expect(prisma.reviewReply.delete).toHaveBeenCalledWith({ where: { id: 2 } });
+  });
+
+  it("forbids creating a review when user has active ban", async () => {
+    reports.hasActiveBan.mockResolvedValue(true);
+    prisma.pelicula.findUnique.mockResolvedValue(dune);
+    await expect(service.upsertReview(111, user, { rating: 5, comment: "x" })).rejects.toMatchObject({
+      status: HttpStatus.FORBIDDEN,
+    });
+  });
+
+  it("forbids adding a reply when user has active ban", async () => {
+    reports.hasActiveBan.mockResolvedValue(true);
+    prisma.review.findUnique.mockResolvedValue({ id: 4 });
+    await expect(service.addReply(4, user, { comment: "x" })).rejects.toMatchObject({
+      status: HttpStatus.FORBIDDEN,
+    });
   });
 });
