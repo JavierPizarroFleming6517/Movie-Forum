@@ -12,17 +12,45 @@ enum UserRole {
   admin
 }
 
+enum ReportType {
+  spam
+  offensive
+  spoiler
+  other
+}
+
+enum ReportStatus {
+  pending
+  dismissed
+  action_taken
+}
+
+enum TargetType {
+  review
+  reply
+}
+
+enum ActionType {
+  warn
+  delete_content
+  ban_temp
+  ban_perm
+}
+
 /// Existing table from Foro-Peliculas (Alembic). Do not migrate.
 model User {
-  id             Int      @id @default(autoincrement())
-  email          String   @unique(map: "ix_users_email") @db.VarChar(255)
-  username       String   @unique(map: "ix_users_username") @db.VarChar(80)
-  hashedPassword String   @map("hashed_password")
-  isActive       Boolean  @default(true) @map("is_active")
-  role           UserRole @default(user)
-  createdAt      DateTime @default(now()) @map("created_at") @db.Timestamptz(6)
-  reviews        Review[]
-  replies        ReviewReply[]
+  id                   Int            @id @default(autoincrement())
+  email                String         @unique(map: "ix_users_email") @db.VarChar(255)
+  username             String         @unique(map: "ix_users_username") @db.VarChar(80)
+  hashedPassword       String         @map("hashed_password")
+  isActive             Boolean        @default(true) @map("is_active")
+  role                 UserRole       @default(user)
+  createdAt            DateTime       @default(now()) @map("created_at") @db.Timestamptz(6)
+  reviews              Review[]
+  replies              ReviewReply[]
+  reports              Report[]       @relation("UserReports")
+  resolvedReports      Report[]       @relation("ResolvedReports")
+  moderationActions    ModerationAction[] @relation("ModeratorActions")
 
   @@map("users")
 }
@@ -67,4 +95,46 @@ model ReviewReply {
   @@index([reviewId], map: "ix_review_replies_review_id")
   @@index([userId], map: "ix_review_replies_user_id")
   @@map("review_replies")
+}
+
+model Report {
+  id           Int          @id @default(autoincrement())
+  type         ReportType
+  reason       String       @db.VarChar(500)
+  status       ReportStatus @default(pending)
+  targetId     Int
+  targetType   TargetType
+  reporterId   Int
+  reporter     User         @relation("UserReports", fields: [reporterId], references: [id])
+  resolvedById Int?
+  resolvedBy   User?        @relation("ResolvedReports", fields: [resolvedById], references: [id])
+  moderationActionId Int?
+  moderationAction   ModerationAction? @relation(fields: [moderationActionId], references: [id])
+  createdAt    DateTime     @default(now()) @map("created_at") @db.Timestamptz(6)
+  resolvedAt   DateTime?    @map("resolved_at") @db.Timestamptz(6)
+
+  @@index([targetId, targetType], map: "ix_reports_target")
+  @@index([status], map: "ix_reports_status")
+  @@index([createdAt], map: "ix_reports_created_at")
+  @@index([reporterId], map: "ix_reports_reporter")
+  @@map("reports")
+}
+
+model ModerationAction {
+  id          Int          @id @default(autoincrement())
+  type        ActionType
+  targetId    Int
+  targetType  TargetType
+  moderatorId Int
+  moderator   User         @relation("ModeratorActions", fields: [moderatorId], references: [id])
+  reason      String?      @db.VarChar(500)
+  durationDays Int?
+  expiresAt   DateTime?    @map("expires_at") @db.Timestamptz(6)
+  createdAt   DateTime     @default(now()) @map("created_at") @db.Timestamptz(6)
+  reports     Report[]
+
+  @@index([targetId, targetType], map: "ix_moderation_actions_target")
+  @@index([moderatorId], map: "ix_moderation_actions_moderator")
+  @@index([expiresAt], map: "ix_moderation_actions_expires")
+  @@map("moderation_actions")
 }
