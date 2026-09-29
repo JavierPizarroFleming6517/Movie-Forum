@@ -6,6 +6,7 @@ import { CatalogModule } from "./catalog/catalog.module";
 import { TmdbModule } from "./tmdb/tmdb.module";
 import { MetricsModule } from "./metrics/metrics.module";
 import { StatusModule } from "./status/status.module";
+import { ReportsModule } from "./reports/reports.module";
 
 @Module({
   imports: [
@@ -16,6 +17,7 @@ import { StatusModule } from "./status/status.module";
     TmdbModule,
     MetricsModule,
     StatusModule,
+    ReportsModule,
   ],
 })
 export class AppModule {}
