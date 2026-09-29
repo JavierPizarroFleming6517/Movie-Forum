@@ -1,6 +1,7 @@
 import { useState, type FormEvent } from "react";
 import { Link } from "react-router-dom";
 import { api, ApiError } from "../api/client";
+import { ReportModal } from "./ReportModal";
 import { fieldClass, ghostBtnClass, metaClass } from "../ui";
 
 type Reply = {
@@ -43,7 +44,21 @@ export function ReviewThread({
   const [status, setStatus] = useState("");
   const [editingId, setEditingId] = useState<number | null>(null);
   const [editText, setEditText] = useState("");
+  const [reportTarget, setReportTarget] = useState<{ id: number; type: "review" | "reply" } | null>(null);
   const replies = review.replies || [];
+
+  function openReport(id: number, type: "review" | "reply") {
+    setReportTarget({ id, type });
+  }
+
+  function closeReport() {
+    setReportTarget(null);
+  }
+
+  function handleReportSuccess() {
+    setStatus("Reporte enviado correctamente");
+    setTimeout(() => setStatus(""), 3000);
+  }
 
   async function sendReply(event: FormEvent) {
     event.preventDefault();
@@ -85,6 +100,17 @@ export function ReviewThread({
 
   return (
     <div className="mt-3 border-t border-white/10 pt-3">
+      <div className="mb-3 flex flex-wrap items-center justify-between gap-2">
+        <div>
+          <strong className="text-sm">{review.username}</strong>
+          <span className={metaClass}>{formatDate(review.created_at)}</span>
+        </div>
+        {sessionId && sessionId !== review.user_id && (
+          <button className={ghostBtnClass} type="button" onClick={() => openReport(review.id, "review")}>
+            Reportar
+          </button>
+        )}
+      </div>
       {replies.length > 0 && (
         <div className="mb-3 grid gap-2">
           {replies.map((reply) => {
@@ -127,6 +153,13 @@ export function ReviewThread({
                     </button>
                   </div>
                 )}
+                {!mine && sessionId && (
+                  <div className="mt-1 flex gap-1">
+                    <button className={ghostBtnClass} type="button" onClick={() => openReport(reply.id, "reply")}>
+                      Reportar
+                    </button>
+                  </div>
+                )}
               </div>
             );
           })}
@@ -165,6 +198,13 @@ export function ReviewThread({
         </p>
       )}
       {status && <p className="mt-2 text-sm text-[#ff8a80]">{status}</p>}
+      <ReportModal
+        open={!!reportTarget}
+        onClose={closeReport}
+        targetId={reportTarget?.id ?? 0}
+        targetType={reportTarget?.type ?? "review"}
+        onSuccess={handleReportSuccess}
+      />
     </div>
   );
 }

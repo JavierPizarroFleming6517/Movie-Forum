@@ -7,6 +7,66 @@ export class ApiError extends Error {
   }
 }
 
+export type ReportType = "spam" | "offensive" | "spoiler" | "other";
+export type ReportStatus = "pending" | "dismissed" | "action_taken";
+export type TargetType = "review" | "reply";
+export type ActionType = "warn" | "delete_content" | "ban_temp" | "ban_perm";
+
+export interface Report {
+  id: number;
+  type: ReportType;
+  reason: string;
+  status: ReportStatus;
+  targetId: number;
+  targetType: TargetType;
+  reporterId: number;
+  reporter: { id: number; username: string };
+  resolvedById?: number;
+  resolvedBy?: { id: number; username: string };
+  moderationActionId?: number;
+  moderationAction?: ModerationAction;
+  createdAt: string;
+  resolvedAt?: string;
+}
+
+export interface ModerationAction {
+  id: number;
+  type: ActionType;
+  targetId: number;
+  targetType: TargetType;
+  moderatorId: number;
+  moderator: { id: number; username: string };
+  reason?: string;
+  durationDays?: number;
+  expiresAt?: string;
+  createdAt: string;
+}
+
+export interface ReportsResponse {
+  data: Report[];
+  total: number;
+  page: number;
+  limit: number;
+}
+
+export interface CreateReportPayload {
+  type: ReportType;
+  reason: string;
+}
+
+export interface ResolveReportPayload {
+  status: ReportStatus;
+  moderationActionId?: number;
+}
+
+export interface CreateModerationActionPayload {
+  type: ActionType;
+  targetId: number;
+  targetType: TargetType;
+  reason?: string;
+  durationDays?: number;
+}
+
 function token(): string | null {
   return localStorage.getItem("token");
 }
@@ -76,4 +136,20 @@ export const api = {
   metrics: () => request<any>("/api/v1/metrics"),
   me: () => request<any>("/api/v1/auth/me"),
   myReviews: () => request<any[]>("/api/v1/auth/reviews"),
+  reportReview: (id: number, payload: CreateReportPayload) =>
+    request<Report>(`/api/v1/reviews/${id}/report`, { method: "POST", body: JSON.stringify(payload) }),
+  reportReply: (id: number, payload: CreateReportPayload) =>
+    request<Report>(`/api/v1/replies/${id}/report`, { method: "POST", body: JSON.stringify(payload) }),
+  getReports: (params?: { status?: ReportStatus; type?: ReportType; page?: number; limit?: number }) => {
+    const qs = new URLSearchParams();
+    if (params?.status) qs.set("status", params.status);
+    if (params?.type) qs.set("type", params.type);
+    if (params?.page) qs.set("page", String(params.page));
+    if (params?.limit) qs.set("limit", String(params.limit));
+    return request<ReportsResponse>(`/api/v1/admin/reports?${qs.toString()}`);
+  },
+  resolveReport: (id: number, payload: ResolveReportPayload) =>
+    request<Report>(`/api/v1/admin/reports/${id}`, { method: "PATCH", body: JSON.stringify(payload) }),
+  createModerationAction: (payload: CreateModerationActionPayload) =>
+    request<ModerationAction>("/api/v1/admin/moderation-actions", { method: "POST", body: JSON.stringify(payload) }),
 };

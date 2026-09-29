@@ -3,6 +3,7 @@ import { Link } from "react-router-dom";
 import { api, ApiError } from "../api/client";
 import { useAuth } from "../auth/AuthContext";
 import { LoadingScreen } from "../components/LoadingScreen";
+import { ReportsPanel } from "../components/metrics/ReportsPanel";
 import { forumStars } from "../components/StarRating";
 import { metaClass, pageClass } from "../ui";
 
@@ -83,6 +84,7 @@ export function MetricsPage() {
           ))}
         </>
       )}
+      <ReportsPanel />
     </div>
   );
 }

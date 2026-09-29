@@ -122,7 +122,22 @@ export class ReportsService {
         ? new Date("2099-12-31")
         : null;
 
-    return this.prisma.moderationAction.create({
+    if (type === ActionType.delete_content) {
+      if (targetType === TargetType.review) {
+        await this.prisma.review.delete({ where: { id: targetId } });
+      } else {
+        await this.prisma.reviewReply.delete({ where: { id: targetId } });
+      }
+    }
+
+    if (type === ActionType.ban_temp || type === ActionType.ban_perm) {
+      await this.prisma.user.update({
+        where: { id: targetId },
+        data: { isActive: false },
+      });
+    }
+
+    const action = await this.prisma.moderationAction.create({
       data: {
         type,
         targetId,
@@ -134,6 +149,10 @@ export class ReportsService {
       },
       include: { moderator: true },
     });
+
+    await this.autoDismissReports(targetId, targetType);
+
+    return action;
   }
 
   async autoDismissReports(targetId: number, targetType: TargetType): Promise<void> {

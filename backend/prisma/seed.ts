@@ -86,6 +86,20 @@ async function main() {
 
   const password = await bcrypt.hash("foro1234", 10);
   const users = [];
+
+  const admin = await prisma.user.upsert({
+    where: { username: "admin" },
+    update: {},
+    create: {
+      email: "admin@foropelis.test",
+      username: "admin",
+      hashedPassword: password,
+      isActive: true,
+      role: "admin",
+    },
+  });
+  users.push(admin);
+
   for (const demo of DEMO_USERS) {
     const user = await prisma.user.upsert({
       where: { username: demo.username },
