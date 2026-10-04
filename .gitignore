@@ -7,3 +7,6 @@ frontend/dist/
 backend/dist/
 backend/generated/
 backend/coverage/
+backend/dist-seed/
+*.tsbuildinfo
+.env.cloud

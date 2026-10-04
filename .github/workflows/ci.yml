@@ -21,6 +21,13 @@ jobs:
       - run: npx prisma generate
       - run: npm run test:cov
 
+  docker:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Build backend image
+        run: docker build -t movie-forum-api:ci ./backend
+
   frontend:
     runs-on: ubuntu-latest
     defaults:

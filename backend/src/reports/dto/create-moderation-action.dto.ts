@@ -21,4 +21,9 @@ export class CreateModerationActionDto {
   @IsInt()
   @Min(1)
   durationDays?: number;
+
+  @IsOptional()
+  @IsInt()
+  @Min(1)
+  reportId?: number;
 }

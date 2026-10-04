@@ -1,6 +1,7 @@
 import {
   Body,
   Controller,
+  DefaultValuePipe,
   Get,
   HttpCode,
   HttpStatus,
@@ -52,10 +53,11 @@ export class ReportsController {
   async listReports(
     @Query("status") status?: ReportStatus,
     @Query("type") type?: string,
-    @Query("page", ParseIntPipe) page = 1,
-    @Query("limit", ParseIntPipe) limit = 20,
+    @Query("search") search?: string,
+    @Query("page", new DefaultValuePipe(1), ParseIntPipe) page = 1,
+    @Query("limit", new DefaultValuePipe(20), ParseIntPipe) limit = 20,
   ) {
-    return this.reports.getReports({ status, type, page, limit });
+    return this.reports.getReports({ status, type, search, page, limit });
   }
 
   @Patch("admin/reports/:id")
@@ -83,6 +85,7 @@ export class ReportsController {
       dto.targetType,
       dto.reason,
       dto.durationDays,
+      dto.reportId,
     );
   }
 }

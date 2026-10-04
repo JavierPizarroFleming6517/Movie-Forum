@@ -28,6 +28,7 @@ enum ReportStatus {
 enum TargetType {
   review
   reply
+  user
 }
 
 enum ActionType {

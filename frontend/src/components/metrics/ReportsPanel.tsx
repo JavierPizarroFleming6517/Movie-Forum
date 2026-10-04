@@ -20,6 +20,7 @@ const TYPE_LABELS: Record<ReportType, string> = {
 const TARGET_LABELS: Record<TargetType, string> = {
   review: "Reseña",
   reply: "Respuesta",
+  user: "Usuario",
 };
 
 const ACTION_LABELS: Record<ActionType, string> = {
@@ -57,6 +58,7 @@ export function ReportsPanel() {
       const res: ReportsResponse = await api.getReports({
         status: filters.status,
         type: filters.type,
+        search: filters.search,
         page,
         limit,
       });
@@ -101,6 +103,7 @@ export function ReportsPanel() {
       targetType: report.targetType,
       reason: "",
       durationDays: undefined,
+      reportId: report.id,
     });
     setActionModal({ open: true, report });
   }
@@ -111,8 +114,9 @@ export function ReportsPanel() {
     setActionLoading(true);
     setActionError("");
     try {
-      const moderationAction = await api.createModerationAction(actionForm);
-      await api.resolveReport(report.id, { status: "action_taken", moderationActionId: moderationAction.id });
+      // The backend applies the action and closes the pending reports in one
+      // transaction, so a single call is enough.
+      await api.createModerationAction(actionForm);
       setActionModal({ open: false, report: null });
       showToast("Acción aplicada correctamente", "success");
       fetchReports();

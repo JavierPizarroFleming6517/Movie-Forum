@@ -10,7 +10,11 @@ RUN npm ci && npx prisma generate
 FROM deps AS build
 COPY tsconfig.json tsconfig.build.json nest-cli.json ./
 COPY src ./src
-RUN npm run build
+# The runner image prunes devDependencies, so ts-node is not available there.
+# Compile the seed to plain JS so `npm run prisma:seed` works in the container too.
+RUN npm run build \
+  && npx tsc prisma/seed.ts --outDir dist-seed --module commonjs --target ES2022 \
+     --esModuleInterop --skipLibCheck --moduleResolution node
 
 FROM node:20-bookworm-slim AS runner
 RUN apt-get update \
@@ -23,6 +27,7 @@ COPY package.json package-lock.json ./
 COPY --from=deps /app/node_modules ./node_modules
 RUN npm prune --omit=dev
 COPY --from=build /app/dist ./dist
+COPY --from=build /app/dist-seed ./dist-seed
 COPY prisma ./prisma
 EXPOSE 3001
 USER node

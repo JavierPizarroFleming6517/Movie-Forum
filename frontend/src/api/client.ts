@@ -9,7 +9,7 @@ export class ApiError extends Error {
 
 export type ReportType = "spam" | "offensive" | "spoiler" | "other";
 export type ReportStatus = "pending" | "dismissed" | "action_taken";
-export type TargetType = "review" | "reply";
+export type TargetType = "review" | "reply" | "user";
 export type ActionType = "warn" | "delete_content" | "ban_temp" | "ban_perm";
 
 export interface Report {
@@ -65,6 +65,7 @@ export interface CreateModerationActionPayload {
   targetType: TargetType;
   reason?: string;
   durationDays?: number;
+  reportId?: number;
 }
 
 function token(): string | null {
@@ -140,10 +141,11 @@ export const api = {
     request<Report>(`/api/v1/reviews/${id}/report`, { method: "POST", body: JSON.stringify(payload) }),
   reportReply: (id: number, payload: CreateReportPayload) =>
     request<Report>(`/api/v1/replies/${id}/report`, { method: "POST", body: JSON.stringify(payload) }),
-  getReports: (params?: { status?: ReportStatus; type?: ReportType; page?: number; limit?: number }) => {
+  getReports: (params?: { status?: ReportStatus; type?: ReportType; search?: string; page?: number; limit?: number }) => {
     const qs = new URLSearchParams();
     if (params?.status) qs.set("status", params.status);
     if (params?.type) qs.set("type", params.type);
+    if (params?.search) qs.set("search", params.search);
     if (params?.page) qs.set("page", String(params.page));
     if (params?.limit) qs.set("limit", String(params.limit));
     return request<ReportsResponse>(`/api/v1/admin/reports?${qs.toString()}`);
