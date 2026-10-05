@@ -5,7 +5,22 @@ import {
   NotFoundException,
 } from "@nestjs/common";
 import { PrismaService } from "../prisma/prisma.service";
-import { ReportStatus, TargetType, ActionType, Report, ModerationAction, User } from "@prisma/client";
+import { ReportStatus, TargetType, ActionType, User, Prisma } from "@prisma/client";
+
+const USER_PUBLIC_SELECT = { id: true, username: true, role: true } as const;
+
+const REPORT_INCLUDE = {
+  reporter: { select: USER_PUBLIC_SELECT },
+  resolvedBy: { select: USER_PUBLIC_SELECT },
+  moderationAction: true,
+} as const;
+
+const MODERATION_ACTION_INCLUDE = {
+  moderator: { select: USER_PUBLIC_SELECT },
+} as const;
+
+type ReportWithRelations = Prisma.ReportGetPayload<{ include: typeof REPORT_INCLUDE }>;
+type ModerationActionWithRelations = Prisma.ModerationActionGetPayload<{ include: typeof MODERATION_ACTION_INCLUDE }>;
 
 @Injectable()
 export class ReportsService {
@@ -17,7 +32,7 @@ export class ReportsService {
     reporter: User,
     type: string,
     reason: string,
-  ): Promise<Report> {
+  ): Promise<ReportWithRelations> {
     const existingReport = await this.prisma.report.findFirst({
       where: {
         targetId,
@@ -46,8 +61,8 @@ export class ReportsService {
         targetType,
         reporterId: reporter.id,
       },
-      include: { reporter: true, resolvedBy: true, moderationAction: true },
-    });
+      include: REPORT_INCLUDE,
+    }) as Promise<ReportWithRelations>;
   }
 
   async getReports(params: {
@@ -56,7 +71,7 @@ export class ReportsService {
     search?: string;
     page?: number;
     limit?: number;
-  }): Promise<{ data: Report[]; total: number; page: number; limit: number }> {
+  }): Promise<{ data: ReportWithRelations[]; total: number; page: number; limit: number }> {
     const { status, type, search, page = 1, limit = 20 } = params;
     const where: any = {};
     if (status) where.status = status;
@@ -71,7 +86,7 @@ export class ReportsService {
     const [data, total] = await Promise.all([
       this.prisma.report.findMany({
         where,
-        include: { reporter: true, resolvedBy: true, moderationAction: true },
+        include: REPORT_INCLUDE,
         orderBy: { createdAt: "desc" },
         skip: (page - 1) * limit,
         take: limit,
@@ -87,7 +102,7 @@ export class ReportsService {
     moderator: User,
     status: ReportStatus,
     moderationActionId?: number,
-  ): Promise<Report> {
+  ): Promise<ReportWithRelations> {
     const report = await this.prisma.report.findUnique({
       where: { id: reportId },
       include: { moderationAction: true },
@@ -111,8 +126,8 @@ export class ReportsService {
     return this.prisma.report.update({
       where: { id: reportId },
       data,
-      include: { reporter: true, resolvedBy: true, moderationAction: true },
-    });
+      include: REPORT_INCLUDE,
+    }) as Promise<ReportWithRelations>;
   }
 
   async createModerationAction(
@@ -123,7 +138,7 @@ export class ReportsService {
     reason?: string,
     durationDays?: number,
     reportId?: number,
-  ): Promise<ModerationAction> {
+  ): Promise<ModerationActionWithRelations> {
     const isBan = type === ActionType.ban_temp || type === ActionType.ban_perm;
     const isContentAction = type === ActionType.warn || type === ActionType.delete_content;
 
@@ -188,12 +203,12 @@ export class ReportsService {
           durationDays: isBan ? durationDays : null,
           expiresAt,
         },
-        include: { moderator: true },
+        include: MODERATION_ACTION_INCLUDE,
       });
 
       // Close every pending report on the same content in the same transaction,
       // so an admin never has to resolve them one by one.
-      const targets: any[] = [{ targetId, targetType }];
+      const targets: Prisma.ReportWhereInput[] = [{ targetId, targetType }];
       if (cascadedReplyIds.length > 0) {
         targets.push({ targetId: { in: cascadedReplyIds }, targetType: TargetType.reply });
       }

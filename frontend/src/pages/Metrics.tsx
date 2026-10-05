@@ -1,29 +1,34 @@
-import { useEffect, useState } from "react";
+import { useCallback, useEffect, useState } from "react";
 import { Link } from "react-router-dom";
 import { api, ApiError } from "../api/client";
+import type { MetricsResponse } from "../api/client";
 import { useAuth } from "../auth/AuthContext";
 import { LoadingScreen } from "../components/LoadingScreen";
-import { ReportsPanel } from "../components/metrics/ReportsPanel";
 import { forumStars } from "../components/StarRating";
+import {
+  EngagementCharts,
+  EngagementKpis,
+  ModerationKpis,
+  RangeNote,
+  RangePicker,
+  ReportsCharts,
+} from "../components/metrics/MetricsCharts";
+import { ReportsPanel } from "../components/metrics/ReportsPanel";
 import { metaClass, pageClass } from "../ui";
 
 export function MetricsPage() {
   const { session } = useAuth();
-  const [data, setData] = useState<any>(null);
+  const [data, setData] = useState<MetricsResponse | null>(null);
   const [error, setError] = useState("");
   const [loading, setLoading] = useState(Boolean(session?.isAdmin));
+  const [days, setDays] = useState(0);
 
-  useEffect(() => {
-    if (!session?.isAdmin) {
-      setData(null);
-      setLoading(false);
-      return;
-    }
+  const load = useCallback((range: number) => {
     let cancelled = false;
     setLoading(true);
     setError("");
     api
-      .metrics()
+      .metrics(range || undefined)
       .then((next) => {
         if (!cancelled) setData(next);
       })
@@ -36,7 +41,16 @@ export function MetricsPage() {
     return () => {
       cancelled = true;
     };
-  }, [session?.isAdmin]);
+  }, []);
+
+  useEffect(() => {
+    if (!session?.isAdmin) {
+      setData(null);
+      setLoading(false);
+      return;
+    }
+    return load(days);
+  }, [session?.isAdmin, days, load]);
 
   if (!session?.isAdmin) {
     return (
@@ -54,27 +68,38 @@ export function MetricsPage() {
 
   return (
     <div className={pageClass}>
-      <h1 className="mb-1 text-[30px]">Métricas</h1>
-      <p className="mb-6 text-[13px] text-muted">Actividad del foro</p>
-      {error && <p className="text-[#ff8a80]">{error}</p>}
+      <div className="mb-6 flex flex-wrap items-end justify-between gap-3">
+        <div>
+          <h1 className="mb-1 text-[30px]">Métricas</h1>
+          <p className="mb-0 text-[13px] text-muted">Salud de la moderación y actividad del foro</p>
+        </div>
+        <RangePicker value={days} onChange={setDays} />
+      </div>
+
+      {error && <p className="mb-4 text-[#ff8a80]">{error}</p>}
+
       {data && (
         <>
-          <div className="flex flex-wrap gap-3">
-            <div className="w-[180px] rounded-lg bg-surface p-5">
-              Usuarios<b className="mt-1 block text-[28px]">{data.users}</b>
-            </div>
-            <div className="w-[180px] rounded-lg bg-surface p-5">
-              Títulos<b className="mt-1 block text-[28px]">{data.titles}</b>
-            </div>
-            <div className="w-[180px] rounded-lg bg-surface p-5">
-              Reseñas<b className="mt-1 block text-[28px]">{data.reviews}</b>
-            </div>
-            <div className="w-[180px] rounded-lg bg-surface p-5">
-              Promedio<b className="mt-1 block text-[28px]">{data.global_average_rating != null ? `${forumStars(data.global_average_rating)}/5` : "—"}</b>
-            </div>
+          <div className="mb-3 flex items-baseline justify-between gap-3">
+            <h2 className="text-xl">Moderación</h2>
+            <RangeNote days={data.range_days} granularity={data.timeline_granularity} />
           </div>
-          <h2 className="mt-6 mb-3 text-xl">Top 10 por calificación</h2>
-          {(data.top_titles || []).map((item: any) => (
+          <ModerationKpis data={data.moderation} />
+          <div className="mt-4">
+            <ReportsCharts data={data.moderation} granularity={data.timeline_granularity} />
+          </div>
+
+          <div className="mt-8 mb-3 flex items-baseline justify-between gap-3">
+            <h2 className="text-xl">Actividad del foro</h2>
+            <RangeNote days={data.range_days} granularity={data.timeline_granularity} />
+          </div>
+          <EngagementKpis data={data.engagement} />
+          <div className="mt-4">
+            <EngagementCharts data={data.engagement} granularity={data.timeline_granularity} />
+          </div>
+
+          <h2 className="mt-8 mb-3 text-xl">Top 10 por calificación</h2>
+          {data.top_titles.map((item) => (
             <article className="mb-3 rounded-lg bg-surface p-4" key={item.id}>
               <strong>{item.title}</strong>
               <div className={metaClass}>
@@ -84,7 +109,10 @@ export function MetricsPage() {
           ))}
         </>
       )}
-      <ReportsPanel />
+
+      <div className="mt-8">
+        <ReportsPanel />
+      </div>
     </div>
   );
 }

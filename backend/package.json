@@ -9,6 +9,7 @@
     "start:prod": "node dist/main",
     "prisma:generate": "prisma generate",
     "prisma:seed": "prisma db seed",
+    "prisma:seed:demo": "node prisma/run-demo-metrics.js",
     "test": "jest",
     "test:cov": "jest --coverage"
   },

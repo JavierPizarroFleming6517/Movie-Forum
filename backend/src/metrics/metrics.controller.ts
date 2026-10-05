@@ -1,44 +1,24 @@
-import { Controller, Get, UseGuards } from "@nestjs/common";
+import { Controller, Get, Query, UseGuards } from "@nestjs/common";
 import { AuthGuard } from "@nestjs/passport";
+import { IsIn, IsOptional } from "class-validator";
+import { Type } from "class-transformer";
 import { AdminGuard } from "../auth/admin.guard";
-import { PrismaService } from "../prisma/prisma.service";
+import { MetricsService } from "./metrics.service";
+
+export class MetricsQueryDto {
+  @IsOptional()
+  @Type(() => Number)
+  @IsIn([7, 30, 90])
+  days?: number;
+}
 
 @Controller("api/v1/metrics")
 export class MetricsController {
-  constructor(private readonly prisma: PrismaService) {}
+  constructor(private readonly metricsService: MetricsService) {}
 
   @Get()
   @UseGuards(AuthGuard("jwt"), AdminGuard)
-  async metrics() {
-    const [users, titles, reviews, avg] = await Promise.all([
-      this.prisma.user.count(),
-      this.prisma.pelicula.count(),
-      this.prisma.review.count(),
-      this.prisma.review.aggregate({ _avg: { rating: true } }),
-    ]);
-    const top = await this.prisma.review.groupBy({
-      by: ["peliculaId"],
-      _avg: { rating: true },
-      _count: { id: true },
-      orderBy: { _avg: { rating: "desc" } },
-      take: 10,
-    });
-    const movies = await this.prisma.pelicula.findMany({
-      where: { id: { in: top.map((row) => row.peliculaId) } },
-    });
-    const byId = new Map(movies.map((item) => [item.id, item]));
-    return {
-      users,
-      titles,
-      reviews,
-      global_average_rating: avg._avg.rating != null ? Math.round(avg._avg.rating * 100) / 100 : null,
-      top_titles: top.map((row) => ({
-        id: row.peliculaId,
-        title: byId.get(row.peliculaId)?.titulo || "Sin título",
-        kind: "movie",
-        average_rating: Math.round((row._avg.rating || 0) * 100) / 100,
-        review_count: row._count.id,
-      })),
-    };
+  metrics(@Query() query: MetricsQueryDto) {
+    return this.metricsService.getMetrics({ days: query.days });
   }
 }

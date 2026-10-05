@@ -68,6 +68,54 @@ export interface CreateModerationActionPayload {
   reportId?: number;
 }
 
+export interface DailyPoint {
+  date: string;
+  value: number;
+}
+
+export type TimelineGranularity = "day" | "month";
+
+export interface MetricsResponse {
+  users: number;
+  titles: number;
+  reviews: number;
+  global_average_rating: number | null;
+  top_titles: Array<{
+    id: number;
+    title: string;
+    kind: "movie";
+    average_rating: number;
+    review_count: number;
+  }>;
+  range_days: number | null;
+  timeline_granularity: TimelineGranularity | null;
+  generated_at: string;
+  moderation: {
+    pending_reports: number;
+    resolved_reports: number;
+    dismissed_reports: number;
+    actioned_reports: number;
+    resolution_rate: number | null;
+    avg_resolution_hours: number | null;
+    active_bans: number;
+    reports_by_type: Array<{ type: ReportType; count: number }>;
+    reports_by_status: Array<{ status: ReportStatus; count: number }>;
+    actions_by_type: Array<{ type: ActionType; count: number }>;
+    reports_timeline: DailyPoint[];
+    top_reported_titles: Array<{ id: number; title: string; report_count: number }>;
+  };
+  engagement: {
+    reviews: number;
+    replies: number;
+    active_users: number;
+    global_average_rating: number | null;
+    rating_distribution: Array<{ rating: number; count: number }>;
+    reviews_timeline: DailyPoint[];
+    top_reviewed_titles: Array<{ id: number; title: string; review_count: number }>;
+    top_reviewers: Array<{ id: number; username: string; reviews: number; replies: number }>;
+  };
+}
+
 function token(): string | null {
   return localStorage.getItem("token");
 }
@@ -134,7 +182,8 @@ export const api = {
     request<any>("/api/v1/auth/login", { method: "POST", body: JSON.stringify({ username, password }) }),
   register: (email: string, username: string, password: string) =>
     request<any>("/api/v1/auth/register", { method: "POST", body: JSON.stringify({ email, username, password }) }),
-  metrics: () => request<any>("/api/v1/metrics"),
+  metrics: (days?: number) =>
+    request<MetricsResponse>(`/api/v1/metrics${days ? `?days=${days}` : ""}`),
   me: () => request<any>("/api/v1/auth/me"),
   myReviews: () => request<any[]>("/api/v1/auth/reviews"),
   reportReview: (id: number, payload: CreateReportPayload) =>

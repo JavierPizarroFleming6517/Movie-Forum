@@ -41,6 +41,11 @@
     10px 50% no-repeat;
 }
 
+.recharts-surface:focus,
+.recharts-wrapper:focus {
+  outline: none;
+}
+
 @keyframes slide-in {
   from {
     opacity: 0;

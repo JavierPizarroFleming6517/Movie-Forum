@@ -35,6 +35,17 @@ docker exec -u root movie-forum-api npm run prisma:seed
 > escuchando en el puerto 5432, el `npx prisma db push` desde el host puede
 > conectarse al servidor equivocado.
 
+**Opcional: historial de métricas para que `/metricas` tenga gráficas pobladas**
+
+```powershell
+cd backend
+npm run prisma:seed:demo
+```
+
+> Este comando se ejecuta **desde el host** (no dentro del contenedor), requiere que el
+> contenedor `movie-forum-db` esté corriendo y copia el script SQL al contenedor
+> antes de ejecutarlo con `psql`. Es idempotente: volver a correrlo no duplica datos.
+
 - App: http://127.0.0.1:5173
 - API: http://127.0.0.1:3001
 - Estado: http://127.0.0.1:3001/api/status
@@ -64,6 +75,33 @@ descarta el reporte o aplica una acción:
 El ban se aplica al autor del contenido, no a quien reportó. Un ban expira solo:
 la cuenta puede seguir iniciando sesión. La acción y el cierre de los reportes
 afectados ocurren en una sola transacción.
+
+## Métricas
+
+`GET /api/v1/metrics` (solo admin) devuelve un resumen con dos bloques. Admite
+`?days=7`, `?days=30` o `?days=90` para acotar las series temporales; sin el
+parámetro devuelve los acumulados históricos.
+
+| Bloque | Contenido |
+| --- | --- |
+| Moderación | Reportes pendientes, resueltos, tasa y tiempo medio de resolución, sanciones activas, desglose por tipo/estado/acción, serie temporal de reportes y títulos más reportados |
+| Actividad | Reseñas, respuestas, usuarios activos, promedio global, distribución de calificaciones, serie temporal de reseñas, títulos más reseñados y usuarios más activos |
+
+La vista **Todo el historial** (sin `days`) cubre siempre el rango completo: las
+series van por día mientras el histórico quepa en 120 buckets y pasan a agruparse
+por mes en historiales largos. El campo `timeline_granularity` indica si el eje
+usa días (`day`) o meses (`month`), y la ventana nunca se recorta por debajo de 7
+buckets para que un foro nuevo no muestre una línea de un solo punto. Los KPI y
+los desgloses son acumulados históricos; `days` solo acota las series y los
+reportes resueltos.
+
+Las gráficas usan [recharts](https://recharts.org) y respetan el tema oscuro. El
+rango se elige en la propia página; el selector invalida y recarga los datos.
+Cada gráfica va dentro de un `ResponsiveContainer`, requisito de recharts para
+que los tooltips funcionen.
+
+Los reportes sobre reseñas se atribuyen a la **película** de la reseña, no al id
+de la reseña, y los conteos se fusionan por película.
 
 ## Desarrollo local de la API (opcional)
 

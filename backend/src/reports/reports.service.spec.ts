@@ -438,4 +438,72 @@ describe("ReportsService", () => {
       );
     });
   });
+
+  describe("security: select excludes hashedPassword", () => {
+    const userPublicSelect = { id: true, username: true, role: true };
+    const reportInclude = {
+      reporter: { select: userPublicSelect },
+      resolvedBy: { select: userPublicSelect },
+      moderationAction: true,
+    };
+    const moderationActionInclude = {
+      moderator: { select: userPublicSelect },
+    };
+
+    it("createReport passes select that excludes hashedPassword", async () => {
+      prisma.report.findFirst.mockResolvedValue(null);
+      prisma.review.findUnique.mockResolvedValue({ id: 5, userId: 7 });
+      prisma.report.create.mockResolvedValue({ id: 9 });
+
+      await service.createReport(5, TargetType.review, { id: 1 } as any, "spam", "x");
+
+      expect(prisma.report.create).toHaveBeenCalledWith(
+        expect.objectContaining({ include: expect.objectContaining(reportInclude) }),
+      );
+      const passedInclude = (prisma.report.create.mock.calls[0][0] as any).include;
+      expect(passedInclude.reporter.select).not.toHaveProperty("hashedPassword");
+      expect(passedInclude.resolvedBy.select).not.toHaveProperty("hashedPassword");
+    });
+
+    it("getReports passes select that excludes hashedPassword", async () => {
+      prisma.report.findMany.mockResolvedValue([]);
+      prisma.report.count.mockResolvedValue(0);
+
+      await service.getReports({});
+
+      expect(prisma.report.findMany).toHaveBeenCalledWith(
+        expect.objectContaining({ include: expect.objectContaining(reportInclude) }),
+      );
+      const passedInclude = (prisma.report.findMany.mock.calls[0][0] as any).include;
+      expect(passedInclude.reporter.select).not.toHaveProperty("hashedPassword");
+      expect(passedInclude.resolvedBy.select).not.toHaveProperty("hashedPassword");
+    });
+
+    it("resolveReport passes select that excludes hashedPassword", async () => {
+      prisma.report.findUnique.mockResolvedValue({ id: 1, status: ReportStatus.pending });
+      prisma.report.update.mockResolvedValue({ id: 1 });
+
+      await service.resolveReport(1, { id: 2 } as any, ReportStatus.dismissed);
+
+      expect(prisma.report.update).toHaveBeenCalledWith(
+        expect.objectContaining({ include: expect.objectContaining(reportInclude) }),
+      );
+      const passedInclude = (prisma.report.update.mock.calls[0][0] as any).include;
+      expect(passedInclude.reporter.select).not.toHaveProperty("hashedPassword");
+      expect(passedInclude.resolvedBy.select).not.toHaveProperty("hashedPassword");
+    });
+
+    it("createModerationAction passes select that excludes hashedPassword", async () => {
+      prisma.review.findUnique.mockResolvedValue({ userId: 7 });
+      prisma.moderationAction.create.mockResolvedValue({ id: 1 });
+
+      await service.createModerationAction({ id: 2 } as any, ActionType.warn, 5, TargetType.review);
+
+      expect(prisma.moderationAction.create).toHaveBeenCalledWith(
+        expect.objectContaining({ include: expect.objectContaining(moderationActionInclude) }),
+      );
+      const passedInclude = (prisma.moderationAction.create.mock.calls[0][0] as any).include;
+      expect(passedInclude.moderator.select).not.toHaveProperty("hashedPassword");
+    });
+  });
 });

@@ -90,7 +90,7 @@ export class CatalogService {
 
   async listRecentReviews(limit = 10) {
     const reviews = await this.prisma.review.findMany({
-      include: { user: true, pelicula: true },
+      include: { user: { select: { username: true } }, pelicula: true },
       orderBy: { createdAt: "desc" },
       take: limit,
     });
@@ -113,7 +113,13 @@ export class CatalogService {
     if (!pelicula) return [];
     const reviews = await this.prisma.review.findMany({
       where: { peliculaId: id },
-      include: { user: true, replies: { include: { user: true }, orderBy: { createdAt: "asc" } } },
+      include: {
+        user: { select: { username: true } },
+        replies: {
+          orderBy: { createdAt: "asc" },
+          include: { user: { select: { username: true } } },
+        },
+      },
       orderBy: { createdAt: "desc" },
     });
     return reviews.map((review) => this.toReviewRead(review, peliculaId));
@@ -130,7 +136,13 @@ export class CatalogService {
       where: { userId_peliculaId: { userId: user.id, peliculaId: id } },
       create: { userId: user.id, peliculaId: id, rating: payload.rating, comment: payload.comment },
       update: { rating: payload.rating, comment: payload.comment },
-      include: { user: true, replies: { include: { user: true }, orderBy: { createdAt: "asc" } } },
+      include: {
+        user: { select: { username: true } },
+        replies: {
+          orderBy: { createdAt: "asc" },
+          include: { user: { select: { username: true } } },
+        },
+      },
     });
     return this.toReviewRead(review, peliculaId);
   }
@@ -152,7 +164,7 @@ export class CatalogService {
     if (!review) throw new HttpException("Reseña no encontrada", HttpStatus.NOT_FOUND);
     const reply = await this.prisma.reviewReply.create({
       data: { reviewId, userId: user.id, comment: payload.comment },
-      include: { user: true },
+      include: { user: { select: { username: true } } },
     });
     return this.toReplyRead(reply);
   }
@@ -164,7 +176,7 @@ export class CatalogService {
     const updated = await this.prisma.reviewReply.update({
       where: { id: replyId },
       data: { comment: payload.comment },
-      include: { user: true },
+      include: { user: { select: { username: true } } },
     });
     return this.toReplyRead(updated);
   }
