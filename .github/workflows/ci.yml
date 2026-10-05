@@ -6,7 +6,7 @@ on:
 
 jobs:
   backend:
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-24.04
     defaults:
       run:
         working-directory: backend
@@ -19,17 +19,22 @@ jobs:
           cache-dependency-path: backend/package-lock.json
       - run: npm ci
       - run: npx prisma generate
+      # prisma.service.spec.ts instantiates a real PrismaClient, whose constructor
+      # requires DATABASE_URL to be set. The tests never query it, so a dummy
+      # postgres URL is enough and no live database is needed.
       - run: npm run test:cov
+        env:
+          DATABASE_URL: postgresql://ci:ci@localhost:5432/movie_forum_ci
 
   docker:
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-24.04
     steps:
       - uses: actions/checkout@v4
       - name: Build backend image
         run: docker build -t movie-forum-api:ci ./backend
 
   frontend:
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-24.04
     defaults:
       run:
         working-directory: frontend
