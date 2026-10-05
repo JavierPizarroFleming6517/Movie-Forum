@@ -1,6 +1,7 @@
 import { ForbiddenException, HttpException, HttpStatus, Injectable } from "@nestjs/common";
 import { IsInt, IsString, Max, MaxLength, Min, MinLength } from "class-validator";
 import { Type } from "class-transformer";
+import { ApiProperty } from "@nestjs/swagger";
 import { User } from "@prisma/client";
 import { PrismaService } from "../prisma/prisma.service";
 import { TmdbService } from "../tmdb/tmdb.service";
@@ -16,12 +17,24 @@ function canModerate(user: User, ownerId: number) {
 }
 
 export class ReviewDto {
+  @ApiProperty({
+    example: 4,
+    minimum: 1,
+    maximum: 5,
+    description: "Puntuación de 1 a 5 estrellas. Reemplaza la reseña existente del usuario si se repite el envío.",
+  })
   @Type(() => Number)
   @IsInt()
   @Min(1)
   @Max(5)
   rating!: number;
 
+  @ApiProperty({
+    example: "Dirección sólida y una fotografía que justifican la pantalla grande.",
+    minLength: 1,
+    maxLength: 2000,
+    description: "Texto de la reseña (máx. 2000 caracteres).",
+  })
   @IsString()
   @MinLength(1)
   @MaxLength(2000)
@@ -29,6 +42,12 @@ export class ReviewDto {
 }
 
 export class ReplyDto {
+  @ApiProperty({
+    example: "Coincido, el tercer acto es lo mejor de la película.",
+    minLength: 1,
+    maxLength: 2000,
+    description: "Texto de la respuesta a otra reseña (máx. 2000 caracteres).",
+  })
   @IsString()
   @MinLength(1)
   @MaxLength(2000)

@@ -1,24 +1,6 @@
 name: movie-forum
 
 services:
-  db:
-    image: postgres:16-alpine
-    container_name: movie-forum-db
-    restart: unless-stopped
-    environment:
-      POSTGRES_USER: foro
-      POSTGRES_PASSWORD: foro
-      POSTGRES_DB: foro_peliculas
-    ports:
-      - "5432:5432"
-    volumes:
-      - postgres_data:/var/lib/postgresql/data
-    healthcheck:
-      test: ["CMD-SHELL", "pg_isready -U foro -d foro_peliculas"]
-      interval: 5s
-      timeout: 5s
-      retries: 10
-
   api:
     build:
       context: ./backend
@@ -29,13 +11,4 @@ services:
     ports:
       - "3001:3001"
     env_file:
-      - ./backend/.env
-    environment:
-      DATABASE_URL: postgresql://foro:foro@db:5432/foro_peliculas
-      PORT: 3001
-    depends_on:
-      db:
-        condition: service_healthy
-
-volumes:
-  postgres_data:
+      - ./backend/.env.docker

@@ -49,6 +49,13 @@ npm run prisma:seed:demo
 - App: http://127.0.0.1:5173
 - API: http://127.0.0.1:3001
 - Estado: http://127.0.0.1:3001/api/status
+- **Swagger UI: http://127.0.0.1:3001/docs** (spec JSON en `/docs-json`)
+
+La documentación interactiva incluye los 35 endpoints agrupados por tag
+(`status`, `auth`, `catalog`, `reports`, `metrics`, `tmdb`), los cuerpos de
+entrada con ejemplos y las respuestas de error. Para probar los endpoints
+protegidos: `POST /api/v1/auth/login` con `admin` / `foro1234`, pulsar
+**Authorize** y pegar el `access_token` que devuelve la respuesta.
 
 No uses `prisma migrate` contra esta base: el esquema se aplica con `db push`.
 
